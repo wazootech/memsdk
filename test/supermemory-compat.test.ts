@@ -1,152 +1,144 @@
-import { describe, expect, it } from "vitest"
-import {
-  exampleMemoryAddRequest,
-  exampleMemoryRecord,
-  exampleMemorySearchRequest,
-  exampleSearchRequest,
+import { describe, expect, expectTypeOf, it } from "vitest"
+import type {
+  AddParams,
+  AddResponse,
+  APIPromise,
+  DocumentAddParams,
+  DocumentGetResponse,
+  SearchMemoriesParams,
+  SupermemoryInterface,
 } from "../src/index.ts"
+import { supermemoryCompatibility } from "../src/index.ts"
 import {
-  BulkDeleteMemoriesResponseSchema,
-  BulkDeleteMemoriesSchema,
   GetMemoryResponseSchema,
-  ListMemoriesQuerySchema,
-  ListMemoriesResponseSchema,
   MemoryAddSchema,
   MemoryResponseSchema,
-  MemorySearchResponseSchema,
-  SearchRequestSchema,
-  SearchResponseSchema,
   Searchv4RequestSchema,
 } from "../src/vendor/supermemory/api.ts"
 
-describe("Supermemory-compatible memsdk fixtures", () => {
-  it("validates memory add requests", () => {
-    expect(MemoryAddSchema.parse(exampleMemoryAddRequest)).toMatchObject({
-      content: exampleMemoryAddRequest.content,
-      customId: exampleMemoryAddRequest.customId,
+function apiPromise<T>(value: T): APIPromise<T> {
+  return Promise.resolve(value) as APIPromise<T>
+}
+
+describe("Supermemory-compatible TypeScript surface", () => {
+  it("exposes pinned upstream compatibility metadata", () => {
+    expect(supermemoryCompatibility).toMatchObject({
+      openapiSource: "https://api.supermemory.ai/v3/openapi",
+      sdkPackage: "supermemory@4.24.12",
     })
   })
 
-  it("validates memory write responses", () => {
-    expect(
-      MemoryResponseSchema.parse({
-        id: exampleMemoryRecord.id,
-        status: "queued",
-      }),
-    ).toEqual({
-      id: exampleMemoryRecord.id,
+  it("accepts the memory-domain SDK-shaped interface", async () => {
+    const client: SupermemoryInterface = {
+      add: (body) => apiPromise({ id: body.customId ?? "doc_1", status: "queued" }),
+      profile: () => apiPromise({ profile: { dynamic: [], static: [] } }),
+      documents: {
+        update: (id) => apiPromise({ id, status: "queued" }),
+        list: () => apiPromise({
+          memories: [],
+          pagination: { currentPage: 1, totalItems: 0, totalPages: 0 },
+        }),
+        delete: () => apiPromise(undefined),
+        add: (body) => apiPromise({ id: body.customId ?? "doc_1", status: "queued" }),
+        batchAdd: () => apiPromise({ failed: 0, results: [], success: 0 }),
+        deleteBulk: () => apiPromise({ deletedCount: 0, success: true }),
+        get: (id) => apiPromise({
+          connectionId: null,
+          content: "content",
+          createdAt: "2026-07-05T16:00:00.000Z",
+          customId: null,
+          filepath: null,
+          id,
+          metadata: null,
+          ogImage: null,
+          raw: null,
+          source: null,
+          spatialPoint: null,
+          status: "done",
+          summary: null,
+          taskType: "memory",
+          title: null,
+          type: "text",
+          updatedAt: "2026-07-05T16:00:00.000Z",
+        }),
+        listProcessing: () => apiPromise({ documents: [], totalCount: 0 }),
+        uploadFile: () => apiPromise({ id: "file_1", status: "queued" }),
+      },
+      search: {
+        documents: () => apiPromise({ results: [], timing: 0, total: 0 }),
+        execute: () => apiPromise({ results: [], timing: 0, total: 0 }),
+        memories: () => apiPromise({ results: [], timing: 0, total: 0 }),
+      },
+      memories: {
+        forget: () => apiPromise({ forgotten: true, id: "mem_1" }),
+        updateMemory: () => apiPromise({
+          createdAt: "2026-07-05T16:00:00.000Z",
+          forgetAfter: null,
+          forgetReason: null,
+          id: "mem_2",
+          memory: "new content",
+          parentMemoryId: "mem_1",
+          rootMemoryId: "mem_1",
+          version: 2,
+        }),
+      },
+    }
+
+    await expect(client.add({ content: "hello" })).resolves.toMatchObject({
       status: "queued",
     })
+    await expect(client.search.memories({ q: "hello" })).resolves.toMatchObject({
+      total: 0,
+    })
   })
 
-  it("validates memory records", () => {
-    expect(GetMemoryResponseSchema.parse(exampleMemoryRecord)).toMatchObject({
-      id: exampleMemoryRecord.id,
+  it("keeps SDK-compatible public type names", () => {
+    expectTypeOf<AddParams>().toMatchTypeOf<DocumentAddParams>()
+    expectTypeOf<APIPromise<AddResponse>>().toMatchTypeOf<Promise<AddResponse>>()
+    expectTypeOf<SearchMemoriesParams>().toHaveProperty("q").toEqualTypeOf<string>()
+    expectTypeOf<DocumentGetResponse>().toHaveProperty("id").toEqualTypeOf<string>()
+  })
+})
+
+describe("legacy vendored Supermemory schema sanity checks", () => {
+  it("still parses compatible add/write/get/search fixtures", () => {
+    const addRequest = {
+      containerTags: ["user_123"],
+      content: "Dhravya prefers machine learning over traditional programming.",
+      customId: "mem_abc123",
+      metadata: { confidence: 0.9 },
+    }
+
+    const memoryRecord = {
+      chunkCount: 1,
+      connectionId: null,
+      containerTags: ["user_123"],
+      content: addRequest.content,
+      createdAt: "2026-07-05T16:00:00.000Z",
+      customId: addRequest.customId,
+      id: "acxV5LHMEsG2hMSNb4umbn",
+      metadata: addRequest.metadata,
+      source: "conversation",
       status: "done",
+      summary: addRequest.content,
+      title: "Programming preference",
       type: "text",
+      updatedAt: "2026-07-05T16:00:00.000Z",
+      url: null,
+    }
+
+    expect(MemoryAddSchema.parse(addRequest)).toMatchObject({
+      content: addRequest.content,
     })
-  })
-
-  it("validates list memory query and response shapes", () => {
-    expect(
-      ListMemoriesQuerySchema.parse({
-        containerTags: ["user_123"],
-        limit: "10",
-        page: "1",
-      }),
-    ).toMatchObject({ limit: 10, page: 1 })
-
-    expect(
-      ListMemoriesResponseSchema.parse({
-        memories: [exampleMemoryRecord],
-        pagination: {
-          currentPage: 1,
-          limit: 10,
-          totalItems: 1,
-          totalPages: 1,
-        },
-      }),
-    ).toMatchObject({ pagination: { totalItems: 1 } })
-  })
-
-  it("validates v3 document search request and response shapes", () => {
-    expect(SearchRequestSchema.parse(exampleSearchRequest)).toMatchObject({
-      includeSummary: true,
-      limit: 10,
+    expect(MemoryResponseSchema.parse({ id: memoryRecord.id, status: "queued" })).toEqual({
+      id: memoryRecord.id,
+      status: "queued",
+    })
+    expect(GetMemoryResponseSchema.parse(memoryRecord)).toMatchObject({
+      id: memoryRecord.id,
+    })
+    expect(Searchv4RequestSchema.parse({ q: "programming preference" })).toMatchObject({
       q: "programming preference",
     })
-
-    expect(
-      SearchResponseSchema.parse({
-        results: [
-          {
-            chunks: [
-              {
-                content: exampleMemoryRecord.content,
-                isRelevant: true,
-                score: 0.91,
-              },
-            ],
-            createdAt: exampleMemoryRecord.createdAt,
-            documentId: exampleMemoryRecord.id,
-            metadata: exampleMemoryRecord.metadata,
-            score: 0.91,
-            summary: exampleMemoryRecord.summary,
-            title: exampleMemoryRecord.title,
-            type: exampleMemoryRecord.type,
-            updatedAt: exampleMemoryRecord.updatedAt,
-          },
-        ],
-        timing: 12,
-        total: 1,
-      }),
-    ).toMatchObject({ total: 1 })
-  })
-
-  it("validates v4 memory search request and response shapes", () => {
-    expect(Searchv4RequestSchema.parse(exampleMemorySearchRequest)).toMatchObject({
-      limit: 10,
-      q: "programming preference",
-    })
-
-    expect(
-      MemorySearchResponseSchema.parse({
-        results: [
-          {
-            documents: [
-              {
-                createdAt: exampleMemoryRecord.createdAt,
-                id: exampleMemoryRecord.id,
-                metadata: exampleMemoryRecord.metadata,
-                title: exampleMemoryRecord.title,
-                type: exampleMemoryRecord.type,
-                updatedAt: exampleMemoryRecord.updatedAt,
-              },
-            ],
-            id: exampleMemoryRecord.id,
-            memory: exampleMemoryRecord.content,
-            metadata: exampleMemoryRecord.metadata,
-            similarity: 0.91,
-            updatedAt: exampleMemoryRecord.updatedAt,
-            version: 1,
-          },
-        ],
-        timing: 12,
-        total: 1,
-      }),
-    ).toMatchObject({ total: 1 })
-  })
-
-  it("validates bulk delete request and response shapes", () => {
-    expect(
-      BulkDeleteMemoriesSchema.parse({ ids: [exampleMemoryRecord.id] }),
-    ).toEqual({ ids: [exampleMemoryRecord.id] })
-
-    expect(
-      BulkDeleteMemoriesResponseSchema.parse({
-        deletedCount: 1,
-        success: true,
-      }),
-    ).toEqual({ deletedCount: 1, success: true })
   })
 })

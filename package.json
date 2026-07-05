@@ -1,7 +1,7 @@
 {
   "name": "memsdk",
   "version": "0.0.0",
-  "description": "Supermemory-compatible SDK interface for portable AI memory backends.",
+  "description": "Drop-in TypeScript interface compatibility for Supermemory-shaped AI memory backends.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -16,19 +16,22 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "COMPATIBILITY.md",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^24.0.10",
+    "supermemory": "^4.24.12",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }
