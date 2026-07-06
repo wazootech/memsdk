@@ -1,0 +1,38 @@
+{
+  "name": "memsdk",
+  "version": "0.0.0",
+  "description": "Drop-in TypeScript interface compatibility for Supermemory-shaped AI memory backends.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wazootech/memsdk.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "COMPATIBILITY.md",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.10",
+    "supermemory": "^4.24.12",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
