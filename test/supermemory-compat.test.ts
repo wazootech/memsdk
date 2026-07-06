@@ -14,7 +14,7 @@ import {
   MemoryAddSchema,
   MemoryResponseSchema,
   Searchv4RequestSchema,
-} from "../src/vendor/supermemory/api.ts"
+} from "../src/schemas/supermemory.ts"
 
 function apiPromise<T>(value: T): APIPromise<T> {
   return Promise.resolve(value) as APIPromise<T>

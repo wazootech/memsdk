@@ -137,18 +137,20 @@ export const Searchv4RequestSchema = z.object({
     .optional()
     .default(0.6)
     .refine((value) => value === undefined || (value >= 0 && value <= 1), {
-      message: "documentThreshold must be between 0 and 1",
+      message: "threshold must be between 0 and 1",
     })
     .transform(Number),
   filters: SearchFiltersSchema.optional(),
   include: z
     .object({
+      chunks: z.boolean().default(false),
       documents: z.boolean().default(false),
       summaries: z.boolean().default(false),
       relatedMemories: z.boolean().default(false),
     })
     .optional()
     .default({
+      chunks: false,
       documents: false,
       summaries: false,
       relatedMemories: false,
@@ -175,14 +177,14 @@ export const SearchResultSchema = z.object({
       score: z.number(),
     }),
   ),
-  createdAt: z.coerce.date(),
+  createdAt: z.string(),
   documentId: z.string(),
   metadata: z.record(z.unknown()).nullable(),
   score: z.number(),
   summary: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
   title: z.string().nullable(),
-  updatedAt: z.coerce.date(),
+  updatedAt: z.string(),
   type: z.string().nullable(),
 })
 
@@ -197,15 +199,15 @@ export const MemorySearchDocumentSchema = z.object({
   title: z.string(),
   type: z.string(),
   metadata: z.record(z.unknown()).nullable(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 })
 
 export const MemorySearchResult = z.object({
   id: z.string(),
   memory: z.string(),
   metadata: z.record(z.unknown()).nullable(),
-  updatedAt: z.coerce.date(),
+  updatedAt: z.string(),
   similarity: z.number(),
   version: z.number().nullable().optional(),
   context: z
@@ -217,7 +219,7 @@ export const MemorySearchResult = z.object({
             version: z.number().nullable().optional(),
             memory: z.string(),
             metadata: z.record(z.unknown()).nullable().optional(),
-            updatedAt: z.coerce.date(),
+            updatedAt: z.string(),
           }),
         )
         .optional(),
@@ -228,7 +230,7 @@ export const MemorySearchResult = z.object({
             version: z.number().nullable().optional(),
             memory: z.string(),
             metadata: z.record(z.unknown()).nullable().optional(),
-            updatedAt: z.coerce.date(),
+            updatedAt: z.string(),
           }),
         )
         .optional(),
