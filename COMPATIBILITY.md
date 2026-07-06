@@ -53,8 +53,25 @@
 
 For v0, SDK TypeScript compatibility wins over raw OpenAPI shape when they differ.
 
+## Letta Backend Pinning (memsdk-letta)
+
+- SDK reference: `@letta-ai/letta-client@^1.12.1` (resolved: `1.12.1`)
+- Runtime: Letta Docker `letta/letta:latest` connected to Ollama (LLM + embedding models)
+- Embedding: inline `embedding_config` with `embedding_endpoint_type:"ollama"`, `embedding_model:"nomic-embed-text"`, `embedding_dim:768`
+- LLM: any Ollama model discovered by the Letta server (e.g. `qwen2.5:3b`)
+- e2e conformance verified at 10/10 parity with Supermemory local server (v0.0.3)
+
+### SDK Behavioral Notes
+
+- `passages.create` returns `Array<Passage>` (always an array); use `result[0]` for the created passage
+- `passages.list` returns `Array<Passage>` (not paginated); iterate directly
+- `agents.blocks.update(blockLabel, params)` takes a block **label** (e.g. `"human"`, `"persona"`), not a block ID — list blocks first to find the right label
+- `blocks.list` returns `PagePromise`; extract `.data` for the array of blocks
+- `passages.search` returns `{ count, results: Array<{ id, content, timestamp }> }` — `score` and `metadata` are present at runtime but not declared in the SDK types
+- `Passage.id` is optional (`?: string`); guard with `if (!passage.id)` before caching
+
 ## Conformance Tiers
 
 - Required interface conformance: method/resource shape exists, params/responses type-check, methods are awaitable.
-- Required behavior conformance: future conformance cases should cover core add/get/list/search/update/delete flows and persistence within a test run.
-- Optional capability conformance: `uploadFile` behavior, `asResponse()`, `withResponse()`, exact transport options, and exact error classes/messages.
+- Required behavior conformance: core add/get/list/search/update/delete flows and persistence within a test run. Verified 10/10 on Supermemory local server (v0.0.3) and Letta Docker via memsdk-e2e.
+- Optional capability conformance: `uploadFile` behavior (verified passing on both backends per inline `embedding_config`; gated per-backend), `asResponse()`, `withResponse()`, exact transport options, and exact error classes/messages.
