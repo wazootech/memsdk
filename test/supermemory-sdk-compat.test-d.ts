@@ -38,7 +38,7 @@ type FirstArg<T> = T extends (arg: infer A, ...args: never[]) => unknown ? A : n
 type SecondArg<T> = T extends (
   first: string,
   second: infer A,
-  ...args: never[]
+  ...args: unknown[]
 ) => unknown
   ? A
   : never

@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 export const MetadataSchema = z.record(
-  z.union([z.string(), z.number(), z.boolean()]),
+  z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
 )
 
 export const SearchFiltersSchema = z
@@ -151,6 +151,7 @@ export const Searchv4RequestSchema = z.object({
     .default({
       documents: false,
       summaries: false,
+      relatedMemories: false,
     }),
   limit: z
     .number()
