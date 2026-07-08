@@ -20,7 +20,7 @@ function apiPromise<T>(value: T): APIPromise<T> {
   return Promise.resolve(value) as APIPromise<T>
 }
 
-describe("Supermemory-compatible TypeScript surface", () => {
+describe("Supermemory-compatible TypeScript surface (synthetic / no server observed)", () => {
   it("exposes pinned upstream compatibility metadata", () => {
     expect(supermemoryCompatibility).toMatchObject({
       openapiSource: "https://api.supermemory.ai/v3/openapi",
@@ -28,7 +28,7 @@ describe("Supermemory-compatible TypeScript surface", () => {
     })
   })
 
-  it("accepts the memory-domain SDK-shaped interface", async () => {
+  it("accepts a synthetic mock implementation of the interface", async () => {
     const client: SupermemoryInterface = {
       add: (body) => apiPromise({ id: body.customId ?? "doc_1", status: "queued" }),
       profile: () => apiPromise({ profile: { dynamic: [], static: [] } }),
@@ -100,8 +100,8 @@ describe("Supermemory-compatible TypeScript surface", () => {
   })
 })
 
-describe("legacy vendored Supermemory schema sanity checks", () => {
-  it("still parses compatible add/write/get/search fixtures", () => {
+describe("vendored Supermemory schema sanity checks (hand-written fixtures, not server-recorded)", () => {
+  it("parses hand-written add/write/get/search fixtures", () => {
     const addRequest = {
       containerTags: ["user_123"],
       content: "Dhravya prefers machine learning over traditional programming.",

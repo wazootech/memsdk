@@ -3,22 +3,22 @@
 ## The problem
 
 Every AI memory backend ships its own SDK. Switching from Supermemory to Letta to
-Mem0 means rewriting your app's memory layer from scratch — same patterns (add,
-search, forget, list documents), different interface shapes. That coupling is
-incidental, not architectural.
+Mem0 means rewriting your app's memory layer from scratch. Common patterns like
+add, search, forget, and list documents are the same, but the interface shapes
+are different. That coupling is incidental, not architectural.
 
 ## The insight
 
 Designing a new universal interface from scratch is tempting but rarely works.
 Letta's own `ai-memory-sdk` (a simplified, differently-shaped memory SDK) went
-stale in 8 months — validating that inventing novel interface shapes is the wrong
-approach.
+stale in 8 months. This validates that inventing novel interface shapes is the
+wrong approach.
 
 Instead, freeze one that's already proven. Supermemory's API surface is the most
-complete memory-domain interface available — documents CRUD, hybrid search, typed
-filters, memory lifecycle, profiles — backed by an OpenAPI spec and a
-Stainless-generated TypeScript SDK. It's the closest thing to a publishable
-spec for what a memory backend should look like.
+complete memory-domain interface available. It covers documents CRUD, hybrid
+search, typed filters, memory lifecycle, and profiles. It is backed by an
+OpenAPI spec and a Stainless-generated TypeScript SDK. It's the closest thing
+to a publishable spec for what a memory backend should look like.
 
 ## What memsdk does
 
