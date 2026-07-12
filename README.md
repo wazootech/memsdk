@@ -42,6 +42,44 @@ function buildApp(client: SupermemoryInterface) {
 }
 ```
 
+## Installation
+
+`memsdk` is distributed directly from GitHub. It is not currently published to
+the npm registry.
+
+Install with any npm-compatible package manager:
+
+```sh
+npm install github:wazootech/memsdk
+pnpm add github:wazootech/memsdk
+yarn add github:wazootech/memsdk
+bun add github:wazootech/memsdk
+```
+
+For reproducible installs, pin to a tag or commit:
+
+```sh
+npm install github:wazootech/memsdk#<tag-or-commit>
+```
+
+The package builds from source during installation via `prepare`, then exposes
+the compiled ESM entrypoint and TypeScript declarations from `dist`.
+
+### Runtime support
+
+| Runtime | Status | Installation path |
+| --- | --- | --- |
+| Node.js | Supported | `npm install github:wazootech/memsdk` |
+| pnpm/yarn projects | Supported | `pnpm add github:wazootech/memsdk` or `yarn add github:wazootech/memsdk` |
+| Bun | Supported | `bun add github:wazootech/memsdk` |
+| Vite/browser apps | Supported through bundling | Install as a package dependency, then import normally from app code |
+| Deno | Not first-class yet | Use through npm/package-manager compatibility where available; direct URL imports are not documented yet |
+| Browser/CDN | Not first-class yet | Requires a published package, release artifact, or committed browser build |
+
+Because `memsdk` is primarily a TypeScript contract plus Zod schemas, browser and
+edge use should go through a bundler today. Direct `<script>`/CDN usage is not a
+supported distribution path yet.
+
 ## It works
 
 - [**memsdk-e2e**](https://github.com/wazootech/memsdk-e2e): 10 conformance
@@ -58,8 +96,8 @@ function buildApp(client: SupermemoryInterface) {
 - SDK-shaped `SupermemoryInterface` for the memory-domain surface only.
 - Vendored TypeScript types aligned with `supermemory@4.24.12` declarations.
 - Awaitable `APIPromise<T>` compatibility for normal `await client...` usage.
-- Runtime-portable library types for npm consumers across Bun, Node.js, Deno,
-  browsers, and edge runtimes.
+- Runtime-portable library types for npm-compatible consumers across Node.js,
+  Bun, Vite/browser bundles, and edge runtimes.
 
 ### Included surface
 
