@@ -58,17 +58,28 @@ type _Documents = [
   Assert<Extends<FirstArg<OfficialDocuments["add"]>, DocumentAddParams>>,
   Assert<Extends<DocumentAddResponse, AwaitedReturn<OfficialDocuments["add"]>>>,
   Assert<Extends<FirstArg<OfficialDocuments["batchAdd"]>, DocumentBatchAddParams>>,
-  Assert<Extends<DocumentBatchAddResponse, AwaitedReturn<OfficialDocuments["batchAdd"]>>>,
+  Assert<
+    Extends<DocumentBatchAddResponse, AwaitedReturn<OfficialDocuments["batchAdd"]>>
+  >,
   Assert<Extends<SecondArg<OfficialDocuments["update"]>, DocumentUpdateParams>>,
   Assert<Extends<DocumentUpdateResponse, AwaitedReturn<OfficialDocuments["update"]>>>,
   Assert<Extends<FirstArg<OfficialDocuments["list"]>, DocumentListParams>>,
   Assert<Extends<DocumentListResponse, AwaitedReturn<OfficialDocuments["list"]>>>,
   Assert<Extends<DocumentGetResponse, AwaitedReturn<OfficialDocuments["get"]>>>,
-  Assert<Extends<DocumentListProcessingResponse, AwaitedReturn<OfficialDocuments["listProcessing"]>>>,
+  Assert<
+    Extends<
+      DocumentListProcessingResponse,
+      AwaitedReturn<OfficialDocuments["listProcessing"]>
+    >
+  >,
   Assert<Extends<FirstArg<OfficialDocuments["deleteBulk"]>, DocumentDeleteBulkParams>>,
-  Assert<Extends<DocumentDeleteBulkResponse, AwaitedReturn<OfficialDocuments["deleteBulk"]>>>,
+  Assert<
+    Extends<DocumentDeleteBulkResponse, AwaitedReturn<OfficialDocuments["deleteBulk"]>>
+  >,
   Assert<Extends<FirstArg<OfficialDocuments["uploadFile"]>, DocumentUploadFileParams>>,
-  Assert<Extends<DocumentUploadFileResponse, AwaitedReturn<OfficialDocuments["uploadFile"]>>>,
+  Assert<
+    Extends<DocumentUploadFileResponse, AwaitedReturn<OfficialDocuments["uploadFile"]>>
+  >,
 ]
 
 type _Search = [
@@ -84,7 +95,9 @@ type _Memories = [
   Assert<Extends<FirstArg<OfficialMemories["forget"]>, MemoryForgetParams>>,
   Assert<Extends<MemoryForgetResponse, AwaitedReturn<OfficialMemories["forget"]>>>,
   Assert<Extends<FirstArg<OfficialMemories["updateMemory"]>, MemoryUpdateMemoryParams>>,
-  Assert<Extends<MemoryUpdateMemoryResponse, AwaitedReturn<OfficialMemories["updateMemory"]>>>,
+  Assert<
+    Extends<MemoryUpdateMemoryResponse, AwaitedReturn<OfficialMemories["updateMemory"]>>
+  >,
 ]
 
 declare const memsdkClient: SupermemoryInterface

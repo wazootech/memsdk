@@ -34,33 +34,35 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
       profile: () => apiPromise({ profile: { dynamic: [], static: [] } }),
       documents: {
         update: (id) => apiPromise({ id, status: "queued" }),
-        list: () => apiPromise({
-          memories: [],
-          pagination: { currentPage: 1, totalItems: 0, totalPages: 0 },
-        }),
+        list: () =>
+          apiPromise({
+            memories: [],
+            pagination: { currentPage: 1, totalItems: 0, totalPages: 0 },
+          }),
         delete: () => apiPromise(undefined),
         add: (body) => apiPromise({ id: body.customId ?? "doc_1", status: "queued" }),
         batchAdd: () => apiPromise({ failed: 0, results: [], success: 0 }),
         deleteBulk: () => apiPromise({ deletedCount: 0, success: true }),
-        get: (id) => apiPromise({
-          connectionId: null,
-          content: "content",
-          createdAt: "2026-07-05T16:00:00.000Z",
-          customId: null,
-          filepath: null,
-          id,
-          metadata: null,
-          ogImage: null,
-          raw: null,
-          source: null,
-          spatialPoint: null,
-          status: "done",
-          summary: null,
-          taskType: "memory",
-          title: null,
-          type: "text",
-          updatedAt: "2026-07-05T16:00:00.000Z",
-        }),
+        get: (id) =>
+          apiPromise({
+            connectionId: null,
+            content: "content",
+            createdAt: "2026-07-05T16:00:00.000Z",
+            customId: null,
+            filepath: null,
+            id,
+            metadata: null,
+            ogImage: null,
+            raw: null,
+            source: null,
+            spatialPoint: null,
+            status: "done",
+            summary: null,
+            taskType: "memory",
+            title: null,
+            type: "text",
+            updatedAt: "2026-07-05T16:00:00.000Z",
+          }),
         listProcessing: () => apiPromise({ documents: [], totalCount: 0 }),
         uploadFile: () => apiPromise({ id: "file_1", status: "queued" }),
       },
@@ -71,16 +73,17 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
       },
       memories: {
         forget: () => apiPromise({ forgotten: true, id: "mem_1" }),
-        updateMemory: () => apiPromise({
-          createdAt: "2026-07-05T16:00:00.000Z",
-          forgetAfter: null,
-          forgetReason: null,
-          id: "mem_2",
-          memory: "new content",
-          parentMemoryId: "mem_1",
-          rootMemoryId: "mem_1",
-          version: 2,
-        }),
+        updateMemory: () =>
+          apiPromise({
+            createdAt: "2026-07-05T16:00:00.000Z",
+            forgetAfter: null,
+            forgetReason: null,
+            id: "mem_2",
+            memory: "new content",
+            parentMemoryId: "mem_1",
+            rootMemoryId: "mem_1",
+            version: 2,
+          }),
       },
     }
 
@@ -130,7 +133,9 @@ describe("vendored Supermemory schema sanity checks (hand-written fixtures, not 
     expect(MemoryAddSchema.parse(addRequest)).toMatchObject({
       content: addRequest.content,
     })
-    expect(MemoryResponseSchema.parse({ id: memoryRecord.id, status: "queued" })).toEqual({
+    expect(
+      MemoryResponseSchema.parse({ id: memoryRecord.id, status: "queued" }),
+    ).toEqual({
       id: memoryRecord.id,
       status: "queued",
     })

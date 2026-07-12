@@ -250,10 +250,9 @@ export const BulkDeleteMemoriesSchema = z
     ids: z.array(z.string()).min(1).max(100).optional(),
     containerTags: z.array(z.string()).min(1).optional(),
   })
-  .refine(
-    (data) => !!data.ids?.length || !!data.containerTags?.length,
-    { message: "Either 'ids' or 'containerTags' must be provided" },
-  )
+  .refine((data) => !!data.ids?.length || !!data.containerTags?.length, {
+    message: "Either 'ids' or 'containerTags' must be provided",
+  })
 
 export const BulkDeleteMemoriesResponseSchema = z.object({
   success: z.boolean(),

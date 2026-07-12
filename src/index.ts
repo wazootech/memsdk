@@ -4,9 +4,7 @@ export interface APIPromise<T> extends Promise<T> {
 }
 
 export type HeadersLike =
-  | Headers
-  | Record<string, string | null | undefined>
-  | Array<[string, string]>
+  Headers | Record<string, string | null | undefined> | Array<[string, string]>
 
 export type RequestOptions = {
   method?: string
@@ -48,9 +46,7 @@ export type QueryFilter = {
 }
 
 export type QueryExpression =
-  | QueryFilter
-  | { OR: Array<QueryExpression> }
-  | { AND: Array<QueryExpression> }
+  QueryFilter | { OR: Array<QueryExpression> } | { AND: Array<QueryExpression> }
 
 export interface AddParams {
   content: string
@@ -463,10 +459,7 @@ export interface SupermemoryMemoriesInterface {
 
 export interface SupermemoryInterface {
   add(body: AddParams, options?: RequestOptions): APIPromise<AddResponse>
-  profile(
-    body: ProfileParams,
-    options?: RequestOptions,
-  ): APIPromise<ProfileResponse>
+  profile(body: ProfileParams, options?: RequestOptions): APIPromise<ProfileResponse>
   documents: SupermemoryDocumentsInterface
   search: SupermemorySearchInterface
   memories: SupermemoryMemoriesInterface
