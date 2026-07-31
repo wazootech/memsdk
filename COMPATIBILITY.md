@@ -5,8 +5,10 @@ memory-domain SDK surface.
 
 ## Pinned References
 
-- SDK reference: `supermemory@4.24.12`
-- SDK git head: `6cfb1ac4d06e7014a49c2a8f1882e6a7404c2b1f`
+- SDK reference: `supermemory@4.24.2` (npm `latest` dist-tag)
+- SDK git head: `e2e8b3945793a6cf1d08f73f8b809db247a65dc5` (sdk-ts `main`; `4.24.2` was
+  published from `main` after tag `v4.24.1` `3a191ae8...` and carries no git tag or
+  `gitHead` field)
 - Canonical OpenAPI reference:
   [https://api.supermemory.ai/v3/openapi](https://api.supermemory.ai/v3/openapi)
 - OpenAPI version observed: `3.0.0`
@@ -16,7 +18,7 @@ memory-domain SDK surface.
 - SDK surface evidence: source of truth for v0 TypeScript method names, resource
   nesting, exported type names, `Uploadable`, `RequestOptions`, and normal awaitable
   method signatures. Verified at compile time via structural subtyping against the
-  official `supermemory@4.24.12` package.
+  official `supermemory@4.24.2` package.
 - OpenAPI evidence: canonical HTTP/schema reference used to understand endpoints and
   detect drift.
 - Synthetic schema fixtures: hand-written test data used for Zod schema sanity checks.
@@ -42,6 +44,7 @@ memory-domain SDK surface.
 - `client.documents.deleteBulk(...)`
 - `client.documents.listProcessing(...)`
 - `client.documents.uploadFile(...)`
+- `client.search(...)` (callable; maps to `POST /v4/search`)
 - `client.search.documents(...)`
 - `client.search.execute(...)`
 - `client.search.memories(...)`
@@ -60,7 +63,7 @@ memory-domain SDK surface.
 
 ## Known OpenAPI/SDK Drift
 
-- OpenAPI includes memory-domain endpoints not exposed by `supermemory@4.24.12`,
+- OpenAPI includes memory-domain endpoints not exposed by `supermemory@4.24.2`,
   including direct memory create/list/forget-matching and document chunks/file-url
   endpoints.
 - OpenAPI includes fields not present in SDK params, including `filterByMetadata`,
@@ -68,8 +71,9 @@ memory-domain SDK surface.
 - Multipart upload types differ: the SDK exposes TypeScript ergonomics such as
   `Uploadable`, `containerTags?: string`, and `metadata?: string` that OpenAPI cannot
   fully represent.
-- `client.search.documents(...)` and `client.search.execute(...)` are distinct SDK
-  methods and types even though both map to `POST /v3/search`.
+- `client.search.documents(...)`, `client.search.execute(...)`, and
+  `client.search.memories(...)` remain distinct SDK methods and types even though the
+  first two map to `POST /v3/search`; `client.search(...)` maps to `POST /v4/search`.
 
 For v0, SDK TypeScript compatibility wins over raw OpenAPI shape when they differ.
 
