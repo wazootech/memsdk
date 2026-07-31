@@ -28,6 +28,8 @@ import type {
   SearchExecuteResponse,
   SearchMemoriesParams,
   SearchMemoriesResponse,
+  SearchParams,
+  SearchResponse,
   SupermemoryInterface,
 } from "../src/index.ts"
 
@@ -83,6 +85,10 @@ type _Documents = [
 ]
 
 type _Search = [
+  Assert<Extends<FirstArg<OfficialSearch>, SearchMemoriesParams>>,
+  Assert<Extends<SearchMemoriesResponse, AwaitedReturn<OfficialSearch>>>,
+  Assert<Extends<SearchParams, SearchMemoriesParams>>,
+  Assert<Extends<SearchResponse, SearchMemoriesResponse>>,
   Assert<Extends<FirstArg<OfficialSearch["documents"]>, SearchDocumentsParams>>,
   Assert<Extends<SearchDocumentsResponse, AwaitedReturn<OfficialSearch["documents"]>>>,
   Assert<Extends<FirstArg<OfficialSearch["execute"]>, SearchExecuteParams>>,
@@ -105,6 +111,7 @@ declare const memsdkClient: SupermemoryInterface
 await memsdkClient.add({ content: "hello" })
 await memsdkClient.documents.add({ content: "hello" })
 await memsdkClient.documents.uploadFile({ file: new File(["hello"], "hello.txt") })
+await memsdkClient.search({ q: "hello", searchMode: "hybrid" })
 await memsdkClient.search.documents({ q: "hello" })
 await memsdkClient.search.execute({ q: "hello" })
 await memsdkClient.search.memories({ q: "hello" })

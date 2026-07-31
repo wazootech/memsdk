@@ -131,7 +131,9 @@ export const SearchRequestSchema = z.object({
 })
 
 export const Searchv4RequestSchema = z.object({
+  aggregate: z.boolean().optional().default(false),
   containerTag: z.string().optional(),
+  filepath: z.string().optional(),
   threshold: z
     .number()
     .optional()
@@ -147,6 +149,7 @@ export const Searchv4RequestSchema = z.object({
       documents: z.boolean().default(false),
       summaries: z.boolean().default(false),
       relatedMemories: z.boolean().default(false),
+      forgottenMemories: z.boolean().default(false),
     })
     .optional()
     .default({
@@ -154,6 +157,7 @@ export const Searchv4RequestSchema = z.object({
       documents: false,
       summaries: false,
       relatedMemories: false,
+      forgottenMemories: false,
     }),
   limit: z
     .number()
@@ -167,6 +171,7 @@ export const Searchv4RequestSchema = z.object({
   q: z.string().min(1),
   rerank: z.boolean().optional().default(false),
   rewriteQuery: z.boolean().optional().default(false),
+  searchMode: z.enum(["memories", "hybrid", "documents"]).default("memories"),
 })
 
 export const SearchResultSchema = z.object({

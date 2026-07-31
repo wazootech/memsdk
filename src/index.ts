@@ -316,6 +316,9 @@ export interface SearchMemoriesResponse {
   total: number
 }
 
+export type SearchParams = SearchMemoriesParams
+export type SearchResponse = SearchMemoriesResponse
+
 export interface SearchMemoryResult {
   id: string
   metadata: Record<string, unknown> | null
@@ -432,14 +435,21 @@ export interface SupermemoryDocumentsInterface {
 }
 
 export interface SupermemorySearchInterface {
+  (
+    body: SearchMemoriesParams,
+    options?: RequestOptions,
+  ): APIPromise<SearchMemoriesResponse>
+  /** @deprecated Use `client.search()` for v4 memory search. */
   documents(
     body: SearchDocumentsParams,
     options?: RequestOptions,
   ): APIPromise<SearchDocumentsResponse>
+  /** @deprecated Use `client.search()` for v4 memory search. */
   execute(
     body: SearchExecuteParams,
     options?: RequestOptions,
   ): APIPromise<SearchExecuteResponse>
+  /** @deprecated Use `client.search()` instead. */
   memories(
     body: SearchMemoriesParams,
     options?: RequestOptions,
@@ -468,6 +478,6 @@ export interface SupermemoryInterface {
 export const supermemoryCompatibility = {
   openapiSource: "https://api.supermemory.ai/v3/openapi",
   openapiVersion: "3.0.0",
-  sdkPackage: "supermemory@4.24.12",
-  sdkGitHead: "6cfb1ac4d06e7014a49c2a8f1882e6a7404c2b1f",
+  sdkPackage: "supermemory@4.24.2",
+  sdkGitHead: "e2e8b3945793a6cf1d08f73f8b809db247a65dc5",
 } as const

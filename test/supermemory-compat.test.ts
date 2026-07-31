@@ -6,6 +6,9 @@ import type {
   DocumentAddParams,
   DocumentGetResponse,
   SearchMemoriesParams,
+  SearchMemoriesResponse,
+  SearchParams,
+  SearchResponse,
   SupermemoryInterface,
 } from "../src/index.ts"
 import { supermemoryCompatibility } from "../src/index.ts"
@@ -24,7 +27,7 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
   it("exposes pinned upstream compatibility metadata", () => {
     expect(supermemoryCompatibility).toMatchObject({
       openapiSource: "https://api.supermemory.ai/v3/openapi",
-      sdkPackage: "supermemory@4.24.12",
+      sdkPackage: "supermemory@4.24.2",
     })
   })
 
@@ -66,11 +69,19 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
         listProcessing: () => apiPromise({ documents: [], totalCount: 0 }),
         uploadFile: () => apiPromise({ id: "file_1", status: "queued" }),
       },
-      search: {
-        documents: () => apiPromise({ results: [], timing: 0, total: 0 }),
-        execute: () => apiPromise({ results: [], timing: 0, total: 0 }),
-        memories: () => apiPromise({ results: [], timing: 0, total: 0 }),
-      },
+      search: Object.assign(
+        (body: SearchMemoriesParams) =>
+          apiPromise({
+            results: [],
+            timing: 0,
+            total: 0,
+          }),
+        {
+          documents: () => apiPromise({ results: [], timing: 0, total: 0 }),
+          execute: () => apiPromise({ results: [], timing: 0, total: 0 }),
+          memories: () => apiPromise({ results: [], timing: 0, total: 0 }),
+        },
+      ),
       memories: {
         forget: () => apiPromise({ forgotten: true, id: "mem_1" }),
         updateMemory: () =>
@@ -93,12 +104,19 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
     await expect(client.search.memories({ q: "hello" })).resolves.toMatchObject({
       total: 0,
     })
+    await expect(
+      client.search({ q: "hello", searchMode: "hybrid" }),
+    ).resolves.toMatchObject({
+      total: 0,
+    })
   })
 
   it("keeps SDK-compatible public type names", () => {
     expectTypeOf<AddParams>().toMatchTypeOf<DocumentAddParams>()
     expectTypeOf<APIPromise<AddResponse>>().toMatchTypeOf<Promise<AddResponse>>()
     expectTypeOf<SearchMemoriesParams>().toHaveProperty("q").toEqualTypeOf<string>()
+    expectTypeOf<SearchParams>().toEqualTypeOf<SearchMemoriesParams>()
+    expectTypeOf<SearchResponse>().toEqualTypeOf<SearchMemoriesResponse>()
     expectTypeOf<DocumentGetResponse>().toHaveProperty("id").toEqualTypeOf<string>()
   })
 })
@@ -144,6 +162,28 @@ describe("vendored Supermemory schema sanity checks (hand-written fixtures, not 
     })
     expect(Searchv4RequestSchema.parse({ q: "programming preference" })).toMatchObject({
       q: "programming preference",
+      searchMode: "memories",
+      aggregate: false,
+      include: {
+        chunks: false,
+        documents: false,
+        forgottenMemories: false,
+        relatedMemories: false,
+        summaries: false,
+      },
+    })
+    expect(
+      Searchv4RequestSchema.parse({
+        aggregate: true,
+        filepath: "notes.md",
+        q: "programming preference",
+        searchMode: "hybrid",
+      }),
+    ).toMatchObject({
+      aggregate: true,
+      filepath: "notes.md",
+      q: "programming preference",
+      searchMode: "hybrid",
     })
   })
 })
