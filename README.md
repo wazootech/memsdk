@@ -66,18 +66,23 @@ compiled ESM entrypoint and TypeScript declarations from `dist`.
 
 ### Runtime support
 
-| Runtime            | Status                     | Installation path                                                                                        |
-| ------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Node.js            | Supported                  | `npm install github:wazootech/memsdk`                                                                    |
-| pnpm/yarn projects | Supported                  | `pnpm add github:wazootech/memsdk` or `yarn add github:wazootech/memsdk`                                 |
-| Bun                | Supported                  | `bun add github:wazootech/memsdk`                                                                        |
-| Vite/browser apps  | Supported through bundling | Install as a package dependency, then import normally from app code                                      |
-| Deno               | Not first-class yet        | Use through npm/package-manager compatibility where available; direct URL imports are not documented yet |
-| Browser/CDN        | Not first-class yet        | Requires a published package, release artifact, or committed browser build                               |
+`memsdk` is plain ESM compiled with `tsc`, `zod` is the only runtime dependency, and the
+package declares no `engines` constraint. Runtime support therefore comes down to how
+the package is resolved, not to runtime-specific code:
+
+| Runtime       | Status                    | Resolution path                                                                                   |
+| ------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
+| Node.js       | Supported                 | Any npm-compatible package manager (`npm`, `pnpm`, `yarn`)                                        |
+| Bun           | Supported                 | `bun add github:wazootech/memsdk`                                                                 |
+| Vite/browser  | Supported through bundler | Package dependency, then import normally from app code                                            |
+| Edge runtimes | Supported through bundler | Package dependency, bundled by the platform deployer                                              |
+| Deno          | Not first-class yet       | Blocked by distribution channel, not the runtime: `npm:` specifiers need an npm-registry artifact |
+| Browser/CDN   | Not first-class yet       | Blocked by distribution channel: esm.sh/jsdelivr/unpkg resolve npm packages                       |
 
 Because `memsdk` is primarily a TypeScript contract plus Zod schemas, browser and edge
 use should go through a bundler today. Direct `<script>`/CDN usage is not a supported
-distribution path yet.
+distribution path yet. Publishing to the npm registry would unblock Deno `npm:`
+specifiers, browser CDNs, and edge registries from a single artifact.
 
 ## It works
 
