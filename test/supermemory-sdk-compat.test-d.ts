@@ -1,5 +1,6 @@
 import type Supermemory from "supermemory"
 import type {
+  APIPromise,
   AddParams,
   AddResponse,
   DocumentAddParams,
@@ -35,6 +36,7 @@ import type {
 
 type Assert<T extends true> = T
 type Extends<A, B> = [A] extends [B] ? true : false
+type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
 type AwaitedReturn<T> = T extends (...args: never[]) => infer R ? Awaited<R> : never
 type FirstArg<T> = T extends (arg: infer A, ...args: never[]) => unknown ? A : never
 type SecondArg<T> = T extends (
@@ -104,6 +106,15 @@ type _Memories = [
   Assert<
     Extends<MemoryUpdateMemoryResponse, AwaitedReturn<OfficialMemories["updateMemory"]>>
   >,
+]
+
+type _PublicTypeNames = [
+  Assert<Extends<AddParams, DocumentAddParams>>,
+  Assert<Extends<APIPromise<AddResponse>, Promise<AddResponse>>>,
+  Assert<Equal<SearchMemoriesParams["q"], string>>,
+  Assert<Equal<SearchParams, SearchMemoriesParams>>,
+  Assert<Equal<SearchResponse, SearchMemoriesResponse>>,
+  Assert<Equal<DocumentGetResponse["id"], string>>,
 ]
 
 declare const memsdkClient: SupermemoryInterface

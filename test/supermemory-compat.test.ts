@@ -1,14 +1,7 @@
-import { describe, expect, expectTypeOf, it } from "vitest"
+import { describe, expect, it } from "bun:test"
 import type {
-  AddParams,
-  AddResponse,
   APIPromise,
-  DocumentAddParams,
-  DocumentGetResponse,
   SearchMemoriesParams,
-  SearchMemoriesResponse,
-  SearchParams,
-  SearchResponse,
   SupermemoryInterface,
 } from "../src/index.ts"
 import { supermemoryCompatibility } from "../src/index.ts"
@@ -109,15 +102,6 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
     ).resolves.toMatchObject({
       total: 0,
     })
-  })
-
-  it("keeps SDK-compatible public type names", () => {
-    expectTypeOf<AddParams>().toMatchTypeOf<DocumentAddParams>()
-    expectTypeOf<APIPromise<AddResponse>>().toMatchTypeOf<Promise<AddResponse>>()
-    expectTypeOf<SearchMemoriesParams>().toHaveProperty("q").toEqualTypeOf<string>()
-    expectTypeOf<SearchParams>().toEqualTypeOf<SearchMemoriesParams>()
-    expectTypeOf<SearchResponse>().toEqualTypeOf<SearchMemoriesResponse>()
-    expectTypeOf<DocumentGetResponse>().toHaveProperty("id").toEqualTypeOf<string>()
   })
 })
 

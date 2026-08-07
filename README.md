@@ -117,10 +117,14 @@ Settings, connections, raw HTTP helpers, constructor/auth compatibility,
 
 ## Validation
 
+Requires [Bun](https://bun.sh) (version pinned in `package.json` via `packageManager`).
+
 Run:
 
 ```sh
-npm test
+bun install
+bun test
+bun run typecheck
 ```
 
 This repo's test suite checks two things:
