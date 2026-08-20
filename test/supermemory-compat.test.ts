@@ -63,7 +63,7 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
         uploadFile: () => apiPromise({ id: "file_1", status: "queued" }),
       },
       search: Object.assign(
-        (body: SearchMemoriesParams) =>
+        (_body: SearchMemoriesParams) =>
           apiPromise({
             results: [],
             timing: 0,
