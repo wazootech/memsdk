@@ -3,7 +3,7 @@ export type RawResponse = {
   readonly redirected: boolean
   readonly status: number
   readonly statusText: string
-  readonly type: ResponseType
+  readonly type: "basic" | "cors" | "default" | "error" | "opaque" | "opaqueredirect"
   readonly url: string
 }
 

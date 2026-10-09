@@ -30,7 +30,7 @@
     "lint": "eslint .",
     "prepare": "npm run build",
     "test": "bun test",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.nodom.json && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "zod": "^3.25.76"
