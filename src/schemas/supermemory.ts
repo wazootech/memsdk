@@ -1,274 +1,264 @@
 import { z } from "zod"
 
+// Hand-ported from https://api.supermemory.ai/v5/openapi (OpenAPI 3.1.0, API 5.0.0).
+// Only the request/response bodies memsdk exercises are vendored here.
+
+export const NamespaceSchema = z
+  .string()
+  .max(100)
+  .regex(/^[a-zA-Z0-9_:-]+$/)
+
 export const MetadataSchema = z.record(
   z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
 )
 
-export const SearchFiltersSchema = z
+const FilterFieldSchema = z
+  .string()
+  .min(1)
+  .regex(/^[a-zA-Z0-9_.-]+$/)
+
+export const FilterPredicateSchema = z.union([
+  z
+    .object({
+      field: FilterFieldSchema,
+      operator: z.enum(["eq", "neq"]),
+      value: z.string(),
+      caseSensitive: z.boolean().default(true),
+    })
+    .strict(),
+  z
+    .object({
+      field: FilterFieldSchema,
+      operator: z.enum(["eq", "neq"]),
+      value: z.union([z.number(), z.boolean()]),
+    })
+    .strict(),
+  z
+    .object({
+      field: FilterFieldSchema,
+      operator: z.enum(["gt", "gte", "lt", "lte"]),
+      value: z.number(),
+    })
+    .strict(),
+  z
+    .object({
+      field: FilterFieldSchema,
+      operator: z.enum(["contains", "notContains"]),
+      value: z.string(),
+      caseSensitive: z.boolean().default(true),
+    })
+    .strict(),
+  z
+    .object({
+      field: FilterFieldSchema,
+      operator: z.enum(["arrayContains", "arrayNotContains"]),
+      value: z.string(),
+    })
+    .strict(),
+])
+
+type FilterExpressionInput =
+  | z.input<typeof FilterPredicateSchema>
+  | { operator: "and" | "or"; operands: Array<FilterExpressionInput> }
+
+export const FilterExpressionSchema: z.ZodType<
+  unknown,
+  z.ZodTypeDef,
+  FilterExpressionInput
+> = z.lazy(() =>
+  z.union([
+    FilterPredicateSchema,
+    z
+      .object({
+        operator: z.enum(["and", "or"]),
+        operands: z.array(FilterExpressionSchema).min(1).max(200),
+      })
+      .strict(),
+  ]),
+)
+
+const TaskTypeSchema = z.enum(["memory", "superrag"])
+const DreamingSchema = z.enum(["dynamic", "instant"])
+
+export const ProcessingStatusSchema = z.enum([
+  "unknown",
+  "queued",
+  "extracting",
+  "chunking",
+  "embedding",
+  "indexing",
+  "done",
+  "failed",
+])
+
+export const AddRequestSchema = z
   .object({
-    AND: z.array(z.unknown()).optional(),
-    OR: z.array(z.unknown()).optional(),
+    content: z.string(),
+    id: z.string().min(1).max(255).optional(),
+    supportingContext: z.string().max(1500).optional(),
+    metadata: MetadataSchema.optional(),
+    group: MetadataSchema.optional(),
+    date: z.string().optional(),
+    taskType: TaskTypeSchema.optional(),
+    dreaming: DreamingSchema.optional(),
   })
-  .or(z.record(z.unknown()))
+  .strict()
 
-const DocumentStatusSchema = z.string()
-const DocumentTypeSchema = z.string()
-
-export const MemorySchema = z.object({
+export const AddResponseSchema = z.object({
   id: z.string(),
-  customId: z.string().nullable().optional(),
-  connectionId: z.string().nullable().optional(),
-  content: z.string().nullable().optional(),
-  metadata: MetadataSchema.nullable().optional(),
-  source: z.string().nullable().optional(),
-  status: DocumentStatusSchema,
-  summary: z.string().nullable().optional(),
-  title: z.string().nullable().optional(),
-  type: DocumentTypeSchema,
-  url: z.string().nullable().optional(),
+  status: ProcessingStatusSchema,
+})
+
+export const SearchRequestSchema = z
+  .object({
+    query: z.string().min(1),
+    filter: FilterExpressionSchema.optional(),
+    searchMode: z.enum(["hybrid", "memories", "chunks"]).default("hybrid"),
+    limit: z.number().int().min(1).max(100).default(10),
+    include: z
+      .object({
+        documents: z.boolean().default(false),
+        related: z.boolean().default(false),
+        forgotten: z.boolean().default(false),
+      })
+      .strict()
+      .default({ documents: false, related: false, forgotten: false }),
+    threshold: z.number().min(0).max(1).default(0.3),
+    rerank: z.enum(["none", "order", "aggregate"]).default("none"),
+    rewriteQuery: z.boolean().default(false),
+  })
+  .strict()
+
+const SystemTimestampsSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
-  containerTags: z.array(z.string()).optional().readonly(),
-  chunkCount: z.number().default(0),
-})
-
-export const MemoryUpdateSchema = z.object({
-  containerTags: z.array(z.string()).optional(),
-  content: z.string().optional(),
-  customId: z.string().optional(),
-  entityContext: z.string().max(1500).optional(),
-  metadata: MetadataSchema.optional(),
-})
-
-export const MemoryAddSchema = MemoryUpdateSchema
-
-export const PaginationSchema = z.object({
-  currentPage: z.number(),
-  limit: z.number().max(1100).default(10),
-  totalItems: z.number(),
-  totalPages: z.number(),
-})
-
-export const GetMemoryResponseSchema = MemorySchema
-
-export const ListMemoriesResponseSchema = z.object({
-  memories: z.array(
-    MemorySchema.pick({
-      connectionId: true,
-      containerTags: true,
-      createdAt: true,
-      customId: true,
-      id: true,
-      metadata: true,
-      status: true,
-      summary: true,
-      title: true,
-      type: true,
-      updatedAt: true,
-    }),
-  ),
-  pagination: PaginationSchema,
-})
-
-export const ListMemoriesQuerySchema = z.object({
-  containerTags: z.array(z.string()).optional(),
-  filters: z.string().optional(),
-  limit: z
-    .string()
-    .regex(/^\d+$/)
-    .or(z.number())
-    .transform(Number)
-    .refine((value) => value <= 1100, {
-      message: "Limit cannot be greater than 1100",
-    })
-    .default("10"),
-  order: z.enum(["asc", "desc"]).default("desc"),
-  page: z.string().regex(/^\d+$/).or(z.number()).transform(Number).default("1"),
-  sort: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
-})
-
-export const MemoryResponseSchema = z.object({
-  id: z.string(),
-  status: z.string(),
-})
-
-export const SearchRequestSchema = z.object({
-  categoriesFilter: z.array(z.string()).optional(),
-  chunkThreshold: z
-    .number()
-    .optional()
-    .default(0)
-    .refine((value) => value === undefined || (value >= 0 && value <= 1), {
-      message: "chunkThreshold must be between 0 and 1",
-    })
-    .transform(Number),
-  containerTags: z.array(z.string()).optional(),
-  docId: z.string().max(255).optional(),
-  documentThreshold: z
-    .number()
-    .optional()
-    .default(0)
-    .refine((value) => value === undefined || (value >= 0 && value <= 1), {
-      message: "documentThreshold must be between 0 and 1",
-    })
-    .transform(Number),
-  filters: SearchFiltersSchema.optional(),
-  includeFullDocs: z.boolean().optional().default(false),
-  includeSummary: z.boolean().optional().default(false),
-  limit: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .default(10)
-    .refine((value) => value === undefined || (value > 0 && value <= 100), {
-      message: "limit must be between 1 and 100",
-    }),
-  onlyMatchingChunks: z.boolean().optional().default(true),
-  q: z.string().min(1),
-  rerank: z.boolean().optional().default(false),
-  rewriteQuery: z.boolean().optional().default(false),
-})
-
-export const Searchv4RequestSchema = z.object({
-  aggregate: z.boolean().optional().default(false),
-  containerTag: z.string().optional(),
-  filepath: z.string().optional(),
-  threshold: z
-    .number()
-    .optional()
-    .default(0.6)
-    .refine((value) => value === undefined || (value >= 0 && value <= 1), {
-      message: "threshold must be between 0 and 1",
-    })
-    .transform(Number),
-  filters: SearchFiltersSchema.optional(),
-  include: z
-    .object({
-      chunks: z.boolean().default(false),
-      documents: z.boolean().default(false),
-      summaries: z.boolean().default(false),
-      relatedMemories: z.boolean().default(false),
-      forgottenMemories: z.boolean().default(false),
-    })
-    .optional()
-    .default({
-      chunks: false,
-      documents: false,
-      summaries: false,
-      relatedMemories: false,
-      forgottenMemories: false,
-    }),
-  limit: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .default(10)
-    .refine((value) => value === undefined || (value > 0 && value <= 100), {
-      message: "limit must be between 1 and 100",
-    }),
-  q: z.string().min(1),
-  rerank: z.boolean().optional().default(false),
-  rewriteQuery: z.boolean().optional().default(false),
-  searchMode: z.enum(["memories", "hybrid", "documents"]).default("memories"),
 })
 
 export const SearchResultSchema = z.object({
-  chunks: z.array(
-    z.object({
-      content: z.string(),
-      isRelevant: z.boolean(),
-      score: z.number(),
-    }),
-  ),
-  createdAt: z.string(),
-  documentId: z.string(),
-  metadata: z.record(z.unknown()).nullable(),
-  score: z.number(),
-  summary: z.string().nullable().optional(),
-  content: z.string().nullable().optional(),
-  title: z.string().nullable(),
-  updatedAt: z.string(),
-  type: z.string().nullable(),
+  id: z.string(),
+  memory: z.string().optional(),
+  chunk: z.string().optional(),
+  metadata: z.record(z.unknown()),
+  similarity: z.number(),
+  isLatest: z.boolean(),
+  isInference: z.boolean(),
+  system: z.object({ updatedAt: z.string(), createdAt: z.string().optional() }),
+  included: z.record(z.unknown()).optional(),
 })
 
 export const SearchResponseSchema = z.object({
   results: z.array(SearchResultSchema),
-  timing: z.number(),
-  total: z.number(),
+  searchTime: z.number(),
 })
 
-export const MemorySearchDocumentSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  type: z.string(),
-  metadata: z.record(z.unknown()).nullable(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+export const ProfileRequestSchema = z
+  .object({
+    filter: FilterExpressionSchema.optional(),
+    buckets: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .max(64)
+          .regex(/^[a-z0-9][a-z0-9_-]*$/),
+      )
+      .max(50)
+      .optional(),
+  })
+  .strict()
+
+const ProfileMemorySchema = z.object({ id: z.string(), memory: z.string() })
+
+export const ProfileResponseSchema = z.object({
+  profile: z.object({
+    static: z.array(ProfileMemorySchema),
+    dynamic: z.array(ProfileMemorySchema),
+    buckets: z.record(z.array(ProfileMemorySchema)),
+  }),
 })
 
-export const MemorySearchResult = z.object({
+export const ListTypeSchema = z.enum(["documents", "chunks", "memories"])
+
+/** `page`, `limit`, `sort`, and `order` travel as query parameters; the rest is the body. */
+export const ListRequestSchema = z
+  .object({
+    page: z.number().int().min(1).default(1),
+    limit: z.number().int().min(1).max(100).default(10),
+    sort: z.enum(["createdAt", "updatedAt", "position"]).default("createdAt"),
+    order: z.enum(["asc", "desc"]).default("desc"),
+    filter: FilterExpressionSchema.optional(),
+    include: z
+      .object({ forgotten: z.boolean().default(false) })
+      .strict()
+      .default({ forgotten: false }),
+  })
+  .strict()
+
+export const PaginationSchema = z.object({
+  currentPage: z.number(),
+  limit: z.number().optional(),
+  totalItems: z.number(),
+  totalPages: z.number(),
+})
+
+export const MemoryRecordSchema = z.object({
   id: z.string(),
   memory: z.string(),
-  metadata: z.record(z.unknown()).nullable(),
-  updatedAt: z.string(),
-  similarity: z.number(),
-  version: z.number().nullable().optional(),
-  context: z
-    .object({
-      parents: z
-        .array(
-          z.object({
-            relation: z.enum(["updates", "extends", "derives"]),
-            version: z.number().nullable().optional(),
-            memory: z.string(),
-            metadata: z.record(z.unknown()).nullable().optional(),
-            updatedAt: z.string(),
-          }),
-        )
-        .optional(),
-      children: z
-        .array(
-          z.object({
-            relation: z.enum(["updates", "extends", "derives"]),
-            version: z.number().nullable().optional(),
-            memory: z.string(),
-            metadata: z.record(z.unknown()).nullable().optional(),
-            updatedAt: z.string(),
-          }),
-        )
-        .optional(),
-    })
-    .optional(),
-  documents: z.array(MemorySearchDocumentSchema).optional(),
+  metadata: z.record(z.unknown()),
+  isStatic: z.boolean(),
+  isInference: z.boolean(),
+  isLatest: z.boolean(),
+  isForgotten: z.boolean(),
+  version: z.number(),
+  system: SystemTimestampsSchema,
 })
 
-export const MemorySearchResponseSchema = z.object({
-  results: z.array(MemorySearchResult),
-  timing: z.number(),
-  total: z.number(),
+const ChunkRecordSchema = z.object({
+  id: z.string(),
+  position: z.number(),
+  content: z.string(),
+  type: z.string(),
+  metadata: z.record(z.unknown()),
+  system: z.object({ createdAt: z.string() }),
 })
 
-export const BulkDeleteMemoriesSchema = z
-  .object({
-    ids: z.array(z.string()).min(1).max(100).optional(),
-    containerTags: z.array(z.string()).min(1).optional(),
-  })
-  .refine((data) => !!data.ids?.length || !!data.containerTags?.length, {
-    message: "Either 'ids' or 'containerTags' must be provided",
-  })
-
-export const BulkDeleteMemoriesResponseSchema = z.object({
-  success: z.boolean(),
-  deletedCount: z.number(),
-  errors: z
-    .array(
-      z.object({
-        id: z.string(),
-        error: z.string(),
-      }),
-    )
-    .optional(),
-  containerTags: z.array(z.string()).optional(),
+export const ListResponseSchema = z.object({
+  documents: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string().nullable(),
+      type: z.string(),
+      summary: z.string().nullable(),
+      metadata: z.record(z.unknown()),
+      url: z.string().nullable(),
+      system: SystemTimestampsSchema.extend({ status: z.string() }),
+    }),
+  ),
+  chunks: z.array(ChunkRecordSchema.extend({ documentId: z.string() })),
+  memories: z.array(MemoryRecordSchema),
+  pagination: PaginationSchema,
 })
+
+export const DocumentGetResponseSchema = z.object({
+  id: z.string(),
+  title: z.string().nullable(),
+  type: z.string(),
+  summary: z.string().nullable(),
+  content: z.string().nullable(),
+  metadata: z.record(z.unknown()),
+  system: SystemTimestampsSchema.extend({ status: ProcessingStatusSchema }),
+  chunks: z.array(ChunkRecordSchema).optional(),
+  memories: z.array(MemoryRecordSchema).optional(),
+})
+
+export const DocumentDeleteRequestSchema = z
+  .object({ ids: z.array(z.string().min(1).max(255)).min(1).max(100) })
+  .strict()
+
+export const MemoryForgetRequestSchema = z
+  .object({ ids: z.array(z.string().min(1)).min(1).max(500) })
+  .strict()
+
+export const MemoryForgetMatchingRequestSchema = z
+  .object({ query: z.string().min(1).max(2000), dryRun: z.boolean() })
+  .strict()

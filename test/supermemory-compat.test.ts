@@ -1,173 +1,202 @@
 import { describe, expect, it } from "bun:test"
-import type {
-  APIPromise,
-  SearchMemoriesParams,
-  SupermemoryInterface,
-} from "../src/index.ts"
+import type { APIPromise, SupermemoryInterface } from "../src/index.ts"
 import { supermemoryCompatibility } from "../src/index.ts"
 import {
-  GetMemoryResponseSchema,
-  MemoryAddSchema,
-  MemoryResponseSchema,
-  Searchv4RequestSchema,
+  AddRequestSchema,
+  AddResponseSchema,
+  DocumentGetResponseSchema,
+  FilterExpressionSchema,
+  ListRequestSchema,
+  MemoryForgetMatchingRequestSchema,
+  NamespaceSchema,
+  ProfileRequestSchema,
+  SearchRequestSchema,
 } from "../src/schemas/supermemory.ts"
 
 function apiPromise<T>(value: T): APIPromise<T> {
   return Promise.resolve(value) as APIPromise<T>
 }
 
+const system = {
+  createdAt: "2026-10-08T16:00:00.000Z",
+  updatedAt: "2026-10-08T16:00:00.000Z",
+}
+
 describe("Supermemory-compatible TypeScript surface (synthetic / no server observed)", () => {
   it("exposes pinned upstream compatibility metadata", () => {
     expect(supermemoryCompatibility).toMatchObject({
-      openapiSource: "https://api.supermemory.ai/v3/openapi",
-      sdkPackage: "supermemory@4.24.2",
+      openapiSource: "https://api.supermemory.ai/v5/openapi",
+      openapiVersion: "3.1.0",
+      sdkPackage: "supermemory@5.0.1",
     })
   })
 
   it("accepts a synthetic mock implementation of the interface", async () => {
+    const forgetResponse = { count: 0, errors: [], matches: [] }
     const client: SupermemoryInterface = {
-      add: (body) => apiPromise({ id: body.customId ?? "doc_1", status: "queued" }),
-      profile: () => apiPromise({ profile: { dynamic: [], static: [] } }),
+      add: (_namespace, request) =>
+        apiPromise({ id: request.id ?? "doc_1", status: "queued" }),
+      search: () => apiPromise({ results: [], searchTime: 0 }),
+      profile: () => apiPromise({ profile: { static: [], dynamic: [], buckets: {} } }),
+      profileMarkdown: (namespace) => Promise.resolve(`# Profile: ${namespace}\n`),
+      list: () =>
+        apiPromise({
+          documents: [],
+          chunks: [],
+          memories: [],
+          pagination: { currentPage: 1, totalItems: 0, totalPages: 0 },
+        }),
       documents: {
-        update: (id) => apiPromise({ id, status: "queued" }),
-        list: () =>
+        get: (_namespace, id) =>
           apiPromise({
-            memories: [],
-            pagination: { currentPage: 1, totalItems: 0, totalPages: 0 },
-          }),
-        delete: () => apiPromise(undefined),
-        add: (body) => apiPromise({ id: body.customId ?? "doc_1", status: "queued" }),
-        batchAdd: () => apiPromise({ failed: 0, results: [], success: 0 }),
-        deleteBulk: () => apiPromise({ deletedCount: 0, success: true }),
-        get: (id) =>
-          apiPromise({
-            connectionId: null,
-            content: "content",
-            createdAt: "2026-07-05T16:00:00.000Z",
-            customId: null,
-            filepath: null,
             id,
-            metadata: null,
-            ogImage: null,
-            raw: null,
-            source: null,
-            spatialPoint: null,
-            status: "done",
-            summary: null,
-            taskType: "memory",
             title: null,
             type: "text",
-            updatedAt: "2026-07-05T16:00:00.000Z",
+            summary: null,
+            content: "content",
+            metadata: {},
+            system: { ...system, status: "done" },
           }),
-        listProcessing: () => apiPromise({ documents: [], totalCount: 0 }),
+        update: (_namespace, id) => apiPromise({ id, status: "queued" }),
+        delete: (_namespace, request) =>
+          apiPromise({ count: request.ids.length, errors: [] }),
+        batchAdd: () => apiPromise({ results: [], count: 0, failed: 0 }),
         uploadFile: () => apiPromise({ id: "file_1", status: "queued" }),
       },
-      search: Object.assign(
-        (_body: SearchMemoriesParams) =>
-          apiPromise({
-            results: [],
-            timing: 0,
-            total: 0,
-          }),
-        {
-          documents: () => apiPromise({ results: [], timing: 0, total: 0 }),
-          execute: () => apiPromise({ results: [], timing: 0, total: 0 }),
-          memories: () => apiPromise({ results: [], timing: 0, total: 0 }),
-        },
-      ),
       memories: {
-        forget: () => apiPromise({ forgotten: true, id: "mem_1" }),
-        updateMemory: () =>
+        get: (_namespace, id) =>
           apiPromise({
-            createdAt: "2026-07-05T16:00:00.000Z",
-            forgetAfter: null,
-            forgetReason: null,
-            id: "mem_2",
-            memory: "new content",
-            parentMemoryId: "mem_1",
-            rootMemoryId: "mem_1",
-            version: 2,
+            id,
+            memory: "likes tea",
+            metadata: {},
+            isStatic: false,
+            isInference: false,
+            isLatest: true,
+            isForgotten: false,
+            version: 1,
+            system,
           }),
+        forget: () => apiPromise(forgetResponse),
+        forgetMatching: () => apiPromise(forgetResponse),
       },
     }
 
-    await expect(client.add({ content: "hello" })).resolves.toMatchObject({
-      status: "queued",
-    })
-    await expect(client.search.memories({ q: "hello" })).resolves.toMatchObject({
-      total: 0,
-    })
     await expect(
-      client.search({ q: "hello", searchMode: "hybrid" }),
-    ).resolves.toMatchObject({
-      total: 0,
-    })
+      client.add("user_123", { content: "hello", id: "doc_9" }),
+    ).resolves.toMatchObject({ id: "doc_9", status: "queued" })
+    await expect(
+      client.search("user_123", { query: "hello", searchMode: "hybrid" }),
+    ).resolves.toMatchObject({ results: [] })
+    await expect(client.profileMarkdown("user_123")).resolves.toContain("user_123")
+    await expect(
+      client.documents.delete("user_123", { ids: ["doc_1", "doc_2"] }),
+    ).resolves.toMatchObject({ count: 2 })
   })
 })
 
-describe("vendored Supermemory schema sanity checks (hand-written fixtures, not server-recorded)", () => {
-  it("parses hand-written add/write/get/search fixtures", () => {
+describe("vendored Supermemory v5 schema sanity checks (hand-written fixtures, not server-recorded)", () => {
+  it("validates namespaces", () => {
+    expect(NamespaceSchema.safeParse("user_123:project-a").success).toBe(true)
+    expect(NamespaceSchema.safeParse("user 123").success).toBe(false)
+  })
+
+  it("parses add requests and rejects v4 field names", () => {
     const addRequest = {
-      containerTags: ["user_123"],
       content: "Dhravya prefers machine learning over traditional programming.",
-      customId: "mem_abc123",
+      id: "mem_abc123",
+      supportingContext: "From an onboarding chat.",
       metadata: { confidence: 0.9 },
-    }
-
-    const memoryRecord = {
-      chunkCount: 1,
-      connectionId: null,
-      containerTags: ["user_123"],
-      content: addRequest.content,
-      createdAt: "2026-07-05T16:00:00.000Z",
-      customId: addRequest.customId,
-      id: "acxV5LHMEsG2hMSNb4umbn",
-      metadata: addRequest.metadata,
-      source: "conversation",
-      status: "done",
-      summary: addRequest.content,
-      title: "Programming preference",
-      type: "text",
-      updatedAt: "2026-07-05T16:00:00.000Z",
-      url: null,
-    }
-
-    expect(MemoryAddSchema.parse(addRequest)).toMatchObject({
-      content: addRequest.content,
-    })
+      dreaming: "instant",
+    } as const
+    expect(AddRequestSchema.parse(addRequest)).toEqual(addRequest)
     expect(
-      MemoryResponseSchema.parse({ id: memoryRecord.id, status: "queued" }),
-    ).toEqual({
-      id: memoryRecord.id,
+      AddRequestSchema.safeParse({ content: "hi", containerTag: "user_123" }).success,
+    ).toBe(false)
+    expect(AddRequestSchema.safeParse({ content: "hi", customId: "x" }).success).toBe(
+      false,
+    )
+    expect(AddResponseSchema.parse({ id: "doc_1", status: "queued" })).toEqual({
+      id: "doc_1",
       status: "queued",
     })
-    expect(GetMemoryResponseSchema.parse(memoryRecord)).toMatchObject({
-      id: memoryRecord.id,
-    })
-    expect(Searchv4RequestSchema.parse({ q: "programming preference" })).toMatchObject({
-      q: "programming preference",
-      searchMode: "memories",
-      aggregate: false,
-      include: {
-        chunks: false,
-        documents: false,
-        forgottenMemories: false,
-        relatedMemories: false,
-        summaries: false,
-      },
-    })
-    expect(
-      Searchv4RequestSchema.parse({
-        aggregate: true,
-        filepath: "notes.md",
-        q: "programming preference",
-        searchMode: "hybrid",
-      }),
-    ).toMatchObject({
-      aggregate: true,
-      filepath: "notes.md",
-      q: "programming preference",
+  })
+
+  it("applies v5 search defaults", () => {
+    expect(SearchRequestSchema.parse({ query: "programming preference" })).toEqual({
+      query: "programming preference",
       searchMode: "hybrid",
+      limit: 10,
+      include: { documents: false, related: false, forgotten: false },
+      threshold: 0.3,
+      rerank: "none",
+      rewriteQuery: false,
     })
+    expect(SearchRequestSchema.safeParse({ q: "v4 field" }).success).toBe(false)
+    expect(
+      SearchRequestSchema.safeParse({ query: "x", searchMode: "documents" }).success,
+    ).toBe(false)
+  })
+
+  it("parses nested typed filter expressions", () => {
+    const filter = {
+      operator: "and",
+      operands: [
+        { field: "source", operator: "eq", value: "chat" },
+        {
+          operator: "or",
+          operands: [
+            { field: "score", operator: "gte", value: 0.5 },
+            { field: "tags", operator: "arrayContains", value: "pinned" },
+          ],
+        },
+      ],
+    } as const
+    expect(FilterExpressionSchema.safeParse(filter).success).toBe(true)
+    expect(
+      FilterExpressionSchema.safeParse({ operator: "and", operands: [] }).success,
+    ).toBe(false)
+    expect(
+      FilterExpressionSchema.safeParse({ field: "score", operator: "gt", value: "1" })
+        .success,
+    ).toBe(false)
+  })
+
+  it("parses profile, list, and forget requests", () => {
+    expect(ProfileRequestSchema.safeParse({ buckets: ["work", "home"] }).success).toBe(
+      true,
+    )
+    expect(ProfileRequestSchema.safeParse({ buckets: ["Work"] }).success).toBe(false)
+    expect(ListRequestSchema.parse({})).toMatchObject({
+      page: 1,
+      limit: 10,
+      sort: "createdAt",
+      order: "desc",
+    })
+    expect(MemoryForgetMatchingRequestSchema.safeParse({ query: "tea" }).success).toBe(
+      false,
+    )
+  })
+
+  it("parses a document get response", () => {
+    const document = {
+      id: "acxV5LHMEsG2hMSNb4umbn",
+      title: "Programming preference",
+      type: "text",
+      summary: null,
+      content: "Prefers ML.",
+      metadata: {},
+      system: { ...system, status: "done" as const },
+      chunks: [
+        {
+          id: "chunk_1",
+          position: 0,
+          content: "Prefers ML.",
+          type: "text",
+          metadata: {},
+          system: { createdAt: system.createdAt },
+        },
+      ],
+    }
+    expect(DocumentGetResponseSchema.parse(document)).toEqual(document)
   })
 })

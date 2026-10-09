@@ -1,83 +1,158 @@
 # Compatibility
 
 `memsdk` targets drop-in TypeScript interface compatibility with Supermemory's public
-memory-domain SDK surface.
+memory-domain SDK surface, as of **Supermemory API v5**. API v3 and v4 are deprecated
+upstream and shut down on 2026-12-31; `memsdk` no longer describes them.
 
 ## Pinned References
 
-- SDK reference: `supermemory@4.24.2` (npm `latest` dist-tag)
-- SDK git head: `e2e8b3945793a6cf1d08f73f8b809db247a65dc5` (sdk-ts `main`; `4.24.2` was
-  published from `main` after tag `v4.24.1` `3a191ae8...` and carries no git tag or
-  `gitHead` field)
+- SDK reference: `supermemory@5.0.1` (npm `latest` dist-tag, published 2026-10-06)
+- SDK git head: `0ec1ac77e0d35a0b9440a08b2d2331f43fcc56ba` (npm `gitHead` for `5.0.1`)
 - Canonical OpenAPI reference:
-  [https://api.supermemory.ai/v3/openapi](https://api.supermemory.ai/v3/openapi)
-- OpenAPI version observed: `3.0.0`
+  [https://api.supermemory.ai/v5/openapi](https://api.supermemory.ai/v5/openapi)
+- OpenAPI version observed: `3.1.0` (API `info.version` `5.0.0`)
+- OpenAPI operation snapshot: `test/fixtures/openapi-v5.operations.txt` (32 operations)
+- Upstream migration guide:
+  [https://supermemory.ai/migration/api-v5](https://supermemory.ai/migration/api-v5)
 
 ## Evidence Levels
 
-- SDK surface evidence: source of truth for v0 TypeScript method names, resource
-  nesting, exported type names, `Uploadable`, `RequestOptions`, and normal awaitable
-  method signatures. Verified at compile time via structural subtyping against the
-  official `supermemory@4.24.2` package.
-- OpenAPI evidence: canonical HTTP/schema reference used to understand endpoints and
-  detect drift.
+- SDK surface evidence: source of truth for TypeScript method names, positional
+  arguments, resource nesting, exported type names, `Uploadable`, `RequestOptions`, and
+  awaitable method signatures. Verified at compile time against the official
+  `supermemory@5.0.1` package: every request and response type is mutually assignable
+  and key-for-key identical at every depth, and the official client is assignable to
+  `SupermemoryInterface` and each optional resource interface.
+- OpenAPI evidence: canonical HTTP/schema reference used for Zod schema bounds and
+  defaults and to detect endpoint drift.
 - Synthetic schema fixtures: hand-written test data used for Zod schema sanity checks.
   These are plausible examples, not captured from a live server. See
   `test/supermemory-compat.test.ts`.
-- Observed server fixtures: not yet included in this repo. Adding fixtures recorded from
-  a running Supermemory local server is planned future work.
+- Observed server fixtures: not yet included in this repo.
 - External behavioral evidence: [`memsdk-e2e`](https://github.com/wazootech/memsdk-e2e)
-  runs 10 conformance scenarios identically against Supermemory local and Letta Docker,
-  producing a side-by-side compatibility report. This external suite is not vendored or
-  reproduced by `npm test` in this repo.
+  runs 10 conformance scenarios against Supermemory local and Letta Docker. Its 10/10
+  parity result was measured against the **v4** contract; re-verification against v5 is
+  pending (#21).
 
-## Included V0 Surface
+## Call Convention
 
-- `client.add(...)`
-- `client.profile(...)`
-- `client.documents.add(...)`
-- `client.documents.batchAdd(...)`
-- `client.documents.update(...)`
-- `client.documents.get(...)`
-- `client.documents.list(...)`
-- `client.documents.delete(...)`
-- `client.documents.deleteBulk(...)`
-- `client.documents.listProcessing(...)`
-- `client.documents.uploadFile(...)`
-- `client.search(...)` (callable; maps to `POST /v4/search`)
-- `client.search.documents(...)`
-- `client.search.execute(...)`
-- `client.search.memories(...)`
-- `client.memories.forget(...)`
-- `client.memories.updateMemory(...)`
+URL values come first as positional arguments, then one object holding query parameters
+and body together, then optional per-call `RequestOptions`:
 
-## Excluded V0 Surface
+```ts
+await client.add("user_alex", { content: "...", dreaming: "instant" })
+await client.documents.get("user_alex", "doc-1", { include: ["chunks"] })
+await client.list("user_alex", "memories", { limit: 20 })
+```
 
-- `client.settings.*`
-- `client.connections.*`
-- Raw `get/post/patch/put/delete` request helpers
-- Constructor, auth, retries, and client lifecycle compatibility
-- `Supermemory.local(...)`
-- Error classes
+## Included Surface
+
+Required by `SupermemoryInterface`:
+
+| Method                                                         | HTTP                                                     |
+| -------------------------------------------------------------- | -------------------------------------------------------- |
+| `client.add(namespace, request)`                               | `POST /ns/{namespace}/document`                          |
+| `client.search(namespace, request)`                            | `POST /ns/{namespace}/search`                            |
+| `client.profile(namespace, request?)`                          | `POST /ns/{namespace}/profile` (JSON)                    |
+| `client.profileMarkdown(namespace, request?)`                  | `POST /ns/{namespace}/profile` (`Accept: text/markdown`) |
+| `client.list(namespace, type, request?)`                       | `POST /ns/{namespace}/list/{type}`                       |
+| `client.documents.get(namespace, id, request?)`                | `GET /ns/{namespace}/document/{id}`                      |
+| `client.documents.update(namespace, id, request?)`             | `PATCH /ns/{namespace}/document/{id}`                    |
+| `client.documents.delete(namespace, { ids })`                  | `DELETE /ns/{namespace}/document`                        |
+| `client.documents.batchAdd(namespace, request)`                | `POST /ns/{namespace}/document/batch`                    |
+| `client.documents.uploadFile(namespace, request)`              | `POST /ns/{namespace}/document/file`                     |
+| `client.memories.get(namespace, id, request?)`                 | `GET /ns/{namespace}/memories/{id}`                      |
+| `client.memories.forget(namespace, { ids })`                   | `DELETE /ns/{namespace}/memories`                        |
+| `client.memories.forgetMatching(namespace, { query, dryRun })` | `DELETE /ns/{namespace}/memories/semantic`               |
+
+Optional interfaces (exported, verified against the SDK, not required by
+`SupermemoryInterface`):
+
+- `SupermemoryDocumentFilesInterface`: `documents.replaceWithFile`,
+  `documents.updateFile`
+- `SupermemoryProfilesInterface`: `profiles.getBuckets`, `setBuckets`, `deleteBuckets`
+- `SupermemoryNamespacesInterface`: `namespaces.list`, `get`, `update`, `delete`
+
+## Excluded Surface
+
+- `client.connectors.*` and `client.organization.*`
+- Constructor, auth, base URL, and client lifecycle compatibility
+- Error classes (`SupermemoryError`, `NotFoundError`, ...)
 - Hosted HTTP route-compatible service
+
+Per-call `RequestOptions` and `withRawResponse()` are included only because the method
+signatures must match; `withRawResponse` is optional for adapters.
+
+## v4 → v5 Migration (for adapter authors)
+
+| v4 contract                                            | v5 contract                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------- |
+| `add({ content, containerTag, customId })`             | `add(namespace, { content, id })`                             |
+| `documents.add(...)`                                   | removed; use `add(namespace, ...)`                            |
+| `documents.get(id)` / `update(id, ...)`                | `documents.get(namespace, id)` / `update(namespace, id, ...)` |
+| `documents.delete(id)` / `deleteBulk({ ids })`         | `documents.delete(namespace, { ids })`                        |
+| `documents.list({ containerTags })`                    | `list(namespace, "documents", { filter? })`                   |
+| `documents.listProcessing()`                           | removed                                                       |
+| `search({ q, containerTag })` / `search.memories(...)` | `search(namespace, { query, searchMode: "memories" })`        |
+| `search.documents(...)` / `search.execute(...)`        | `search(namespace, { query, searchMode: "chunks" })`          |
+| `profile({ containerTag, q })`                         | `profile(namespace)`, then `search(namespace, { query })`     |
+| `memories.forget({ containerTag, id })`                | `memories.forget(namespace, { ids })`                         |
+| `memories.updateMemory(...)`                           | removed; update the source document                           |
+
+| v4 field                          | v5 field                                   |
+| --------------------------------- | ------------------------------------------ |
+| `containerTag` / `containerTags`  | the `namespace` argument (same values)     |
+| `customId`                        | `id`                                       |
+| `entityContext`                   | `supportingContext`                        |
+| `filterByMetadata`                | `group`                                    |
+| `documentDate`                    | `date`                                     |
+| `q`                               | `query`                                    |
+| `filters`                         | `filter` (typed `FilterExpression`)        |
+| `rerank: boolean` + `aggregate`   | `rerank: "none" \| "order" \| "aggregate"` |
+| `searchMode: "documents"`         | `searchMode: "chunks"`                     |
+| `timing` / `total`                | `searchTime`                               |
+| `RequestOptions.timeout` (ms)     | `RequestOptions.timeoutInSeconds`          |
+| `RequestOptions.signal`           | `RequestOptions.abortSignal`               |
+| `asResponse()` / `withResponse()` | `withRawResponse()`                        |
+
+Defaults changed: search `threshold` is `0.3` (was `0.6`) and `searchMode` is `hybrid`
+(was `memories`). Memories appear quickly after `add` only with `dreaming: "instant"`.
 
 ## Known OpenAPI/SDK Drift
 
-- OpenAPI includes memory-domain endpoints not exposed by `supermemory@4.24.2`,
-  including direct memory create/list/forget-matching and document chunks/file-url
-  endpoints.
-- OpenAPI includes fields not present in SDK params, including `filterByMetadata`,
-  `dreaming`, profile `include`, and profile `buckets`.
-- Multipart upload types differ: the SDK exposes TypeScript ergonomics such as
-  `Uploadable`, `containerTags?: string`, and `metadata?: string` that OpenAPI cannot
-  fully represent.
-- `client.search.documents(...)`, `client.search.execute(...)`, and
-  `client.search.memories(...)` remain distinct SDK methods and types even though the
-  first two map to `POST /v3/search`; `client.search(...)` maps to `POST /v4/search`.
+- OpenAPI exposes `GET /ns`, `GET /namespaces`, and `POST /feedback`, which have no SDK
+  method in `supermemory@5.0.1`.
+- `profileMarkdown` is a hand-written SDK method (not generated); OpenAPI models it as a
+  `text/markdown` response variant of `POST /ns/{namespace}/profile`.
+- Multipart upload fields `metadata` and `group` are JSON-encoded strings in the SDK,
+  while the JSON `add`/`update` bodies take objects.
+- `Uploadable`: `memsdk` accepts `ArrayBuffer`/`ArrayBufferView`/`Blob`/`File`/
+  `ReadableStream` plus `{ path }` and `{ data }` wrappers. The SDK additionally accepts
+  Node `Buffer`/`stream.Readable`, omitted here to keep `memsdk` free of `@types/node`.
+  The drift guard checks this direction only: every `memsdk` upload value is accepted by
+  the SDK.
 
-For v0, SDK TypeScript compatibility wins over raw OpenAPI shape when they differ.
+For the contract, SDK TypeScript compatibility wins over raw OpenAPI shape when they
+differ.
+
+## Refreshing the Pin
+
+A scheduled CI job runs weekly (Mondays 14:00 UTC; also `workflow_dispatch`):
+
+- `bun run drift:sdk` installs `supermemory@latest` and runs `bun run typecheck`.
+- `bun run drift:openapi` diffs the live OpenAPI operation list against the snapshot.
+
+When either fails, whoever picks up the failure opens one PR that:
+
+1. Bumps the `supermemory` devDependency (exact version) and fixes the contract types.
+2. Runs `bun run drift:openapi --write` to refresh the operation snapshot.
+3. Updates `supermemoryCompatibility` in `src/index.ts` and the Pinned References and
+   Known Drift sections above.
 
 ## Letta Backend Pinning (memsdk-letta)
+
+These notes describe the adapter as verified against the **v4** contract; the v5 port is
+pending (#21).
 
 - SDK reference: `@letta-ai/letta-client@^1.12.1` (resolved: `1.12.1`)
 - Runtime: Letta Docker `letta/letta:latest` connected to Ollama (LLM + embedding
@@ -106,9 +181,10 @@ For v0, SDK TypeScript compatibility wins over raw OpenAPI shape when they diffe
 - Required interface conformance: method/resource shape exists, params/responses
   type-check, methods are awaitable.
 - Required behavior conformance: core add/get/list/search/update/delete flows and
-  persistence within a test run. Verified 10/10 on Supermemory local server (v0.0.3) and
-  Letta Docker via external [memsdk-e2e](https://github.com/wazootech/memsdk-e2e) suite.
-  Not reproduced by `npm test` in this repo.
-- Optional capability conformance: `uploadFile` behavior (verified passing on both
-  backends per inline `embedding_config`; gated per-backend), `asResponse()`,
-  `withResponse()`, exact transport options, and exact error classes/messages.
+  persistence within a test run. Verified 10/10 against the v4 contract on Supermemory
+  local server (v0.0.3) and Letta Docker via external
+  [memsdk-e2e](https://github.com/wazootech/memsdk-e2e); v5 re-verification pending. Not
+  reproduced by `bun test` in this repo.
+- Optional capability conformance: `uploadFile` behavior, the optional resource
+  interfaces, `withRawResponse()`, exact transport options, and exact error
+  classes/messages.
