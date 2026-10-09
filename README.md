@@ -99,14 +99,13 @@ specifiers, browser CDNs, and edge registries from a single artifact.
   `supermemory@5.0.1` npm package, in both directions: every request and response type
   matches the SDK's key-for-key, and the official client is itself assignable to
   `SupermemoryInterface`.
-- [**memsdk-e2e**](https://github.com/wazootech/memsdk-e2e): 10 conformance scenarios
-  run identically against Supermemory local and Letta Docker. Verified against the v4
-  contract; the v5 port is tracked in
-  [#21](https://github.com/wazootech/memsdk/issues/21).
+- [**memsdk-e2e**](https://github.com/wazootech/memsdk-e2e): 11 conformance scenarios
+  run identically against Supermemory local and Letta Docker. On the v5 contract, Letta
+  passes 11/11; Supermemory local is blocked until its local server serves the v5 API
+  (see `COMPATIBILITY.md`).
 - [**memsdk-letta**](https://github.com/wazootech/memsdk-letta): a Letta adapter that
-  implements `SupermemoryInterface` via `@letta-ai/letta-client`. Verified against the
-  v4 contract; the v5 port is tracked in
-  [#21](https://github.com/wazootech/memsdk/issues/21).
+  implements `SupermemoryInterface` via `@letta-ai/letta-client`, verified live against
+  the v5 contract.
 
 ## Current scope
 

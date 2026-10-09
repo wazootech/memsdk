@@ -30,9 +30,11 @@ upstream and shut down on 2026-12-31; `memsdk` no longer describes them.
   `test/supermemory-compat.test.ts`.
 - Observed server fixtures: not yet included in this repo.
 - External behavioral evidence: [`memsdk-e2e`](https://github.com/wazootech/memsdk-e2e)
-  runs 10 conformance scenarios against Supermemory local and Letta Docker. Its 10/10
-  parity result was measured against the **v4** contract; re-verification against v5 is
-  pending (#21).
+  runs 11 conformance scenarios against Supermemory local and Letta Docker. Against the
+  v5 contract (2026-10-08): Letta Docker passes 11/11 with no skips; Supermemory local
+  is blocked because the latest local server (`supermemory-server` 0.0.8) serves only
+  v3/v4 routes and returns 404 for `/ns/{namespace}/*`. The earlier 10/10 parity on both
+  backends was measured against the v4 contract.
 
 ## Call Convention
 
@@ -151,8 +153,9 @@ When either fails, whoever picks up the failure opens one PR that:
 
 ## Letta Backend Pinning (memsdk-letta)
 
-These notes describe the adapter as verified against the **v4** contract; the v5 port is
-pending (#21).
+The adapter targets the v5 contract (memsdk-letta#10) and passes all 11 memsdk-e2e
+scenarios against Letta Docker. Behavior specific to Letta's immutable passages
+(stable-id alias map, `forgetMatching` unsupported) is documented in that repo.
 
 - SDK reference: `@letta-ai/letta-client@^1.12.1` (resolved: `1.12.1`)
 - Runtime: Letta Docker `letta/letta:latest` connected to Ollama (LLM + embedding
@@ -160,7 +163,7 @@ pending (#21).
 - Embedding: inline `embedding_config` with `embedding_endpoint_type:"ollama"`,
   `embedding_model:"nomic-embed-text"`, `embedding_dim:768`
 - LLM: any Ollama model discovered by the Letta server (e.g. `qwen2.5:3b`)
-- e2e conformance verified at 10/10 parity with Supermemory local server (v0.0.3). See
+- e2e conformance: 11/11 on v5 (2026-10-08); see
   [memsdk-e2e](https://github.com/wazootech/memsdk-e2e) for details.
 
 ### SDK Behavioral Notes
@@ -181,10 +184,9 @@ pending (#21).
 - Required interface conformance: method/resource shape exists, params/responses
   type-check, methods are awaitable.
 - Required behavior conformance: core add/get/list/search/update/delete flows and
-  persistence within a test run. Verified 10/10 against the v4 contract on Supermemory
-  local server (v0.0.3) and Letta Docker via external
-  [memsdk-e2e](https://github.com/wazootech/memsdk-e2e); v5 re-verification pending. Not
-  reproduced by `bun test` in this repo.
+  persistence within a test run. Verified against v5 on Letta Docker (11/11) via
+  external [memsdk-e2e](https://github.com/wazootech/memsdk-e2e); Supermemory local is
+  blocked on a v5-capable local server. Not reproduced by `bun test` in this repo.
 - Optional capability conformance: `uploadFile` behavior, the optional resource
   interfaces, `withRawResponse()`, exact transport options, and exact error
   classes/messages.
