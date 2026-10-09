@@ -1,134 +1,196 @@
 import type Supermemory from "supermemory"
 import type {
+  RequestOptions as OfficialRequestOptions,
+  Uploadable as OfficialUploadable,
+} from "supermemory"
+import type {
   APIPromise,
   AddParams,
   AddResponse,
-  DocumentAddParams,
-  DocumentAddResponse,
   DocumentBatchAddParams,
   DocumentBatchAddResponse,
-  DocumentDeleteBulkParams,
-  DocumentDeleteBulkResponse,
+  DocumentDeleteParams,
+  DocumentDeleteResponse,
+  DocumentFileResponse,
+  DocumentGetParams,
   DocumentGetResponse,
-  DocumentListParams,
-  DocumentListProcessingResponse,
-  DocumentListResponse,
+  DocumentReplaceWithFileParams,
+  DocumentUpdateFileParams,
   DocumentUpdateParams,
   DocumentUpdateResponse,
   DocumentUploadFileParams,
-  DocumentUploadFileResponse,
+  FilterExpression,
+  ListParams,
+  ListResponse,
+  ListType,
+  MemoryForgetMatchingParams,
   MemoryForgetParams,
   MemoryForgetResponse,
-  MemoryUpdateMemoryParams,
-  MemoryUpdateMemoryResponse,
+  MemoryGetParams,
+  MemoryGetResponse,
+  NamespaceDeleteParams,
+  NamespaceDeleteResponse,
+  NamespaceListParams,
+  NamespaceListResponse,
+  NamespaceResponse,
+  NamespaceUpdateParams,
+  ProfileBucketsResponse,
   ProfileParams,
   ProfileResponse,
-  SearchDocumentsParams,
-  SearchDocumentsResponse,
-  SearchExecuteParams,
-  SearchExecuteResponse,
-  SearchMemoriesParams,
-  SearchMemoriesResponse,
+  RequestOptions,
   SearchParams,
   SearchResponse,
+  SupermemoryDocumentFilesInterface,
   SupermemoryInterface,
+  SupermemoryNamespacesInterface,
+  SupermemoryProfilesInterface,
+  Uploadable,
 } from "../src/index.ts"
+
+// Drift guard: every request and response type must be mutually assignable with the
+// official SDK's, so a change on either side fails `bun run typecheck`.
 
 type Assert<T extends true> = T
 type Extends<A, B> = [A] extends [B] ? true : false
-type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
-type AwaitedReturn<T> = T extends (...args: never[]) => infer R ? Awaited<R> : never
-type FirstArg<T> = T extends (arg: infer A, ...args: never[]) => unknown ? A : never
-type SecondArg<T> = T extends (
-  first: string,
-  second: infer A,
-  ...args: unknown[]
-) => unknown
-  ? A
+type Assignable<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+// Mutual assignability alone lets a renamed optional field through, so key sets must
+// also match at every depth.
+type Depth = [never, 0, 1, 2, 3, 4, 5]
+type KeysMatch<A, B, D extends number = 6> = [D] extends [never]
+  ? true
+  : [A] extends [readonly (infer EA)[]]
+    ? [B] extends [readonly (infer EB)[]]
+      ? KeysMatch<EA, EB, Depth[D]>
+      : false
+    : [A] extends [object]
+      ? Assignable<keyof A, keyof B> extends true
+        ? false extends {
+            [K in keyof A & keyof B]: KeysMatch<
+              NonNullable<A[K]>,
+              NonNullable<B[K]>,
+              Depth[D]
+            >
+          }[keyof A & keyof B]
+          ? false
+          : true
+        : false
+      : true
+type Equal<A, B> = Assignable<A, B> extends true ? KeysMatch<A, B> : false
+type Arg<T, I extends number> = T extends (...args: infer P) => unknown
+  ? NonNullable<P[I]>
   : never
+type Res<T> = T extends (...args: never[]) => infer R ? Awaited<R> : never
+type WithoutFile<T> = Omit<T, "file">
 
-type OfficialDocuments = Supermemory["documents"]
-type OfficialSearch = Supermemory["search"]
-type OfficialMemories = Supermemory["memories"]
+type Docs = Supermemory["documents"]
+type Mems = Supermemory["memories"]
+type Profiles = Supermemory["profiles"]
+type Namespaces = Supermemory["namespaces"]
+
+type _Shared = [
+  Assert<Equal<RequestOptions, OfficialRequestOptions>>,
+  Assert<Equal<FilterExpression, Arg<Supermemory["search"], 1>["filter"] & {}>>,
+  // Every value memsdk accepts is accepted by the official SDK. The SDK also accepts
+  // Node-only stream and Buffer types that memsdk omits to stay free of @types/node.
+  Assert<Extends<Uploadable, OfficialUploadable>>,
+]
 
 type _TopLevel = [
-  Assert<Extends<FirstArg<Supermemory["add"]>, AddParams>>,
-  Assert<Extends<AddResponse, AwaitedReturn<Supermemory["add"]>>>,
-  Assert<Extends<FirstArg<Supermemory["profile"]>, ProfileParams>>,
-  Assert<Extends<ProfileResponse, AwaitedReturn<Supermemory["profile"]>>>,
+  Assert<Equal<Arg<Supermemory["add"], 1>, AddParams>>,
+  Assert<Equal<Res<Supermemory["add"]>, AddResponse>>,
+  Assert<Equal<Arg<Supermemory["search"], 1>, SearchParams>>,
+  Assert<Equal<Res<Supermemory["search"]>, SearchResponse>>,
+  Assert<Equal<Arg<Supermemory["profile"], 1>, ProfileParams>>,
+  Assert<Equal<Res<Supermemory["profile"]>, ProfileResponse>>,
+  Assert<Equal<Arg<Supermemory["profileMarkdown"], 1>, ProfileParams>>,
+  Assert<Equal<Res<Supermemory["profileMarkdown"]>, string>>,
+  Assert<Equal<Arg<Supermemory["list"], 1>, ListType>>,
+  Assert<Equal<Arg<Supermemory["list"], 2>, ListParams>>,
+  Assert<Equal<Res<Supermemory["list"]>, ListResponse>>,
 ]
 
 type _Documents = [
-  Assert<Extends<FirstArg<OfficialDocuments["add"]>, DocumentAddParams>>,
-  Assert<Extends<DocumentAddResponse, AwaitedReturn<OfficialDocuments["add"]>>>,
-  Assert<Extends<FirstArg<OfficialDocuments["batchAdd"]>, DocumentBatchAddParams>>,
+  Assert<Equal<Arg<Docs["get"], 2>, DocumentGetParams>>,
+  Assert<Equal<Res<Docs["get"]>, DocumentGetResponse>>,
+  Assert<Equal<Arg<Docs["update"], 2>, DocumentUpdateParams>>,
+  Assert<Equal<Res<Docs["update"]>, DocumentUpdateResponse>>,
+  Assert<Equal<Arg<Docs["delete"], 1>, DocumentDeleteParams>>,
+  Assert<Equal<Res<Docs["delete"]>, DocumentDeleteResponse>>,
+  Assert<Equal<Arg<Docs["batchAdd"], 1>, DocumentBatchAddParams>>,
+  Assert<Equal<Res<Docs["batchAdd"]>, DocumentBatchAddResponse>>,
   Assert<
-    Extends<DocumentBatchAddResponse, AwaitedReturn<OfficialDocuments["batchAdd"]>>
-  >,
-  Assert<Extends<SecondArg<OfficialDocuments["update"]>, DocumentUpdateParams>>,
-  Assert<Extends<DocumentUpdateResponse, AwaitedReturn<OfficialDocuments["update"]>>>,
-  Assert<Extends<FirstArg<OfficialDocuments["list"]>, DocumentListParams>>,
-  Assert<Extends<DocumentListResponse, AwaitedReturn<OfficialDocuments["list"]>>>,
-  Assert<Extends<DocumentGetResponse, AwaitedReturn<OfficialDocuments["get"]>>>,
-  Assert<
-    Extends<
-      DocumentListProcessingResponse,
-      AwaitedReturn<OfficialDocuments["listProcessing"]>
+    Equal<
+      WithoutFile<Arg<Docs["uploadFile"], 1>>,
+      WithoutFile<DocumentUploadFileParams>
     >
   >,
-  Assert<Extends<FirstArg<OfficialDocuments["deleteBulk"]>, DocumentDeleteBulkParams>>,
+  Assert<Equal<Res<Docs["uploadFile"]>, DocumentFileResponse>>,
   Assert<
-    Extends<DocumentDeleteBulkResponse, AwaitedReturn<OfficialDocuments["deleteBulk"]>>
+    Equal<
+      WithoutFile<Arg<Docs["replaceWithFile"], 2>>,
+      WithoutFile<DocumentReplaceWithFileParams>
+    >
   >,
-  Assert<Extends<FirstArg<OfficialDocuments["uploadFile"]>, DocumentUploadFileParams>>,
+  Assert<Equal<Res<Docs["replaceWithFile"]>, DocumentFileResponse>>,
   Assert<
-    Extends<DocumentUploadFileResponse, AwaitedReturn<OfficialDocuments["uploadFile"]>>
+    Equal<
+      WithoutFile<Arg<Docs["updateFile"], 2>>,
+      WithoutFile<DocumentUpdateFileParams>
+    >
   >,
-]
-
-type _Search = [
-  Assert<Extends<FirstArg<OfficialSearch>, SearchMemoriesParams>>,
-  Assert<Extends<SearchMemoriesResponse, AwaitedReturn<OfficialSearch>>>,
-  Assert<Extends<SearchParams, SearchMemoriesParams>>,
-  Assert<Extends<SearchResponse, SearchMemoriesResponse>>,
-  Assert<Extends<FirstArg<OfficialSearch["documents"]>, SearchDocumentsParams>>,
-  Assert<Extends<SearchDocumentsResponse, AwaitedReturn<OfficialSearch["documents"]>>>,
-  Assert<Extends<FirstArg<OfficialSearch["execute"]>, SearchExecuteParams>>,
-  Assert<Extends<SearchExecuteResponse, AwaitedReturn<OfficialSearch["execute"]>>>,
-  Assert<Extends<FirstArg<OfficialSearch["memories"]>, SearchMemoriesParams>>,
-  Assert<Extends<SearchMemoriesResponse, AwaitedReturn<OfficialSearch["memories"]>>>,
+  Assert<Equal<Res<Docs["updateFile"]>, DocumentFileResponse>>,
 ]
 
 type _Memories = [
-  Assert<Extends<FirstArg<OfficialMemories["forget"]>, MemoryForgetParams>>,
-  Assert<Extends<MemoryForgetResponse, AwaitedReturn<OfficialMemories["forget"]>>>,
-  Assert<Extends<FirstArg<OfficialMemories["updateMemory"]>, MemoryUpdateMemoryParams>>,
-  Assert<
-    Extends<MemoryUpdateMemoryResponse, AwaitedReturn<OfficialMemories["updateMemory"]>>
-  >,
+  Assert<Equal<Arg<Mems["get"], 2>, MemoryGetParams>>,
+  Assert<Equal<Res<Mems["get"]>, MemoryGetResponse>>,
+  Assert<Equal<Arg<Mems["forget"], 1>, MemoryForgetParams>>,
+  Assert<Equal<Res<Mems["forget"]>, MemoryForgetResponse>>,
+  Assert<Equal<Arg<Mems["forgetMatching"], 1>, MemoryForgetMatchingParams>>,
+  Assert<Equal<Res<Mems["forgetMatching"]>, MemoryForgetResponse>>,
 ]
 
-type _PublicTypeNames = [
-  Assert<Extends<AddParams, DocumentAddParams>>,
-  Assert<Extends<APIPromise<AddResponse>, Promise<AddResponse>>>,
-  Assert<Equal<SearchMemoriesParams["q"], string>>,
-  Assert<Equal<SearchParams, SearchMemoriesParams>>,
-  Assert<Equal<SearchResponse, SearchMemoriesResponse>>,
-  Assert<Equal<DocumentGetResponse["id"], string>>,
+type _Profiles = [
+  Assert<Equal<Arg<Profiles["setBuckets"], 1>["buckets"], Record<string, string>>>,
+  Assert<Equal<Arg<Profiles["deleteBuckets"], 1>["buckets"], Array<string>>>,
+  Assert<Equal<Res<Profiles["getBuckets"]>, ProfileBucketsResponse>>,
+  Assert<Equal<Res<Profiles["setBuckets"]>, ProfileBucketsResponse>>,
+  Assert<Equal<Res<Profiles["deleteBuckets"]>, ProfileBucketsResponse>>,
 ]
+
+type _Namespaces = [
+  Assert<Equal<Arg<Namespaces["list"], 0>, NamespaceListParams>>,
+  Assert<Equal<Res<Namespaces["list"]>, NamespaceListResponse>>,
+  Assert<Equal<Res<Namespaces["get"]>, NamespaceResponse>>,
+  Assert<Equal<Arg<Namespaces["update"], 1>, NamespaceUpdateParams>>,
+  Assert<Equal<Res<Namespaces["update"]>, NamespaceResponse>>,
+  Assert<Equal<Arg<Namespaces["delete"], 1>, NamespaceDeleteParams>>,
+  Assert<Equal<Res<Namespaces["delete"]>, NamespaceDeleteResponse>>,
+]
+
+// The official client is itself a valid memsdk implementation, including the optional
+// resource interfaces.
+declare const official: Supermemory
+export const _client: SupermemoryInterface = official
+export const _files: SupermemoryDocumentFilesInterface = official.documents
+export const _profiles: SupermemoryProfilesInterface = official.profiles
+export const _namespaces: SupermemoryNamespacesInterface = official.namespaces
+
+type _Promise = [Assert<Extends<APIPromise<AddResponse>, Promise<AddResponse>>>]
 
 declare const memsdkClient: SupermemoryInterface
 
-await memsdkClient.add({ content: "hello" })
-await memsdkClient.documents.add({ content: "hello" })
-await memsdkClient.documents.uploadFile({ file: new File(["hello"], "hello.txt") })
-await memsdkClient.search({ q: "hello", searchMode: "hybrid" })
-await memsdkClient.search.documents({ q: "hello" })
-await memsdkClient.search.execute({ q: "hello" })
-await memsdkClient.search.memories({ q: "hello" })
-await memsdkClient.memories.forget({ containerTag: "user_123", content: "hello" })
-await memsdkClient.memories.updateMemory({
-  containerTag: "user_123",
-  content: "hello",
-  newContent: "updated",
+await memsdkClient.add("user_123", { content: "hello", dreaming: "instant" })
+await memsdkClient.search("user_123", { query: "hello", searchMode: "hybrid" })
+await memsdkClient.profile("user_123")
+await memsdkClient.profileMarkdown("user_123")
+await memsdkClient.list("user_123", "documents", {
+  filter: { field: "source", operator: "eq", value: "chat" },
 })
+await memsdkClient.documents.get("user_123", "doc_1", { include: ["chunks"] })
+await memsdkClient.documents.uploadFile("user_123", {
+  file: new File(["hello"], "hello.txt"),
+})
+await memsdkClient.documents.delete("user_123", { ids: ["doc_1"] })
+await memsdkClient.memories.forget("user_123", { ids: ["mem_1"] })
+await memsdkClient.memories.forgetMatching("user_123", { query: "hello", dryRun: true })

@@ -23,12 +23,14 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "drift:openapi": "bun scripts/check-openapi-drift.ts",
+    "drift:sdk": "bun add -d --exact supermemory@latest && bun run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "prepare": "npm run build",
     "test": "bun test",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.nodom.json && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "zod": "^3.25.76"
@@ -39,7 +41,7 @@
     "@types/node": "^24.0.10",
     "eslint": "^9.20.0",
     "prettier": "^3.9.5",
-    "supermemory": "4.24.2",
+    "supermemory": "5.0.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.24.0"
   }

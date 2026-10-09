@@ -14,30 +14,39 @@ own `ai-memory-sdk` (a simplified, differently-shaped memory SDK) went stale in 
 months. This validates that inventing novel interface shapes is the wrong approach.
 
 Instead, freeze one that's already proven. Supermemory's API surface is the most
-complete memory-domain interface available. It covers documents CRUD, hybrid search,
-typed filters, memory lifecycle, and profiles. It is backed by an OpenAPI spec and a
-Stainless-generated TypeScript SDK. It's the closest thing to a publishable spec for
-what a memory backend should look like.
+complete memory-domain interface available. It covers namespaced documents CRUD, hybrid
+search, typed filters, memory lifecycle, and profiles. It is backed by an OpenAPI spec
+(API v5) and a generated TypeScript SDK. It's the closest thing to a publishable spec
+for what a memory backend should look like.
 
 ## What memsdk does
 
 `memsdk` extracts Supermemory's public API surface into a backend-agnostic TypeScript
 contract:
 
-- **`SupermemoryInterface`**: a type-level contract for memory backends (480 lines)
-- **Zod schemas**: runtime request validation (270 lines)
+- **`SupermemoryInterface`**: a type-level contract for memory backends (~580 lines)
+- **Zod schemas**: runtime request validation (~260 lines)
 - **Zero runtime deps** beyond `zod`
 
 Write app code against this interface, then swap backends by swapping the adapter.
 
+The contract follows Supermemory API v5: every content operation is scoped to a
+**namespace** (formerly a container tag), passed as the first positional argument, then
+any other URL values, then one options object.
+
 ```ts
 import type { SupermemoryInterface } from "memsdk"
 
-function buildApp(client: SupermemoryInterface) {
+async function buildApp(client: SupermemoryInterface) {
   // works against any backend that implements the contract
-  const doc = await client.documents.add({ content: "..." })
-  const results = await client.search.documents({ q: "..." })
-  await client.memories.forget({ containerTag: "default", id: doc.id })
+  const doc = await client.add("user_alex", { content: "...", dreaming: "instant" })
+  const { results } = await client.search("user_alex", {
+    query: "...",
+    searchMode: "hybrid",
+    filter: { field: "source", operator: "eq", value: "chat" },
+  })
+  const profile = await client.profileMarkdown("user_alex")
+  await client.documents.delete("user_alex", { ids: [doc.id] })
 }
 ```
 
@@ -86,34 +95,50 @@ specifiers, browser CDNs, and edge registries from a single artifact.
 
 ## It works
 
-- [**memsdk-e2e**](https://github.com/wazootech/memsdk-e2e): 10 conformance scenarios
-  (add, search, forget, batch, upload, list...) run identically against Supermemory
-  local and Letta Docker, producing a side-by-side report.
-- [**memsdk-letta**](https://github.com/wazootech/memsdk-letta): a working Letta adapter
-  in ~500 lines that implements `SupermemoryInterface` via `@letta-ai/letta-client`.
 - **Type-level compatibility** is verified at compile time against the official
-  `supermemory@4.24.12` npm package.
+  `supermemory@5.0.1` npm package, in both directions: every request and response type
+  matches the SDK's key-for-key, and the official client is itself assignable to
+  `SupermemoryInterface`.
+- [**memsdk-e2e**](https://github.com/wazootech/memsdk-e2e): 11 conformance scenarios
+  run identically against Supermemory local and Letta Docker. On the v5 contract, Letta
+  passes 11/11; Supermemory local is blocked until its local server serves the v5 API
+  (see `COMPATIBILITY.md`).
+- [**memsdk-letta**](https://github.com/wazootech/memsdk-letta): a Letta adapter that
+  implements `SupermemoryInterface` via `@letta-ai/letta-client`, verified live against
+  the v5 contract.
 
 ## Current scope
 
-- SDK-shaped `SupermemoryInterface` for the memory-domain surface only.
-- Vendored TypeScript types aligned with `supermemory@4.24.12` declarations.
-- Awaitable `APIPromise<T>` compatibility for normal `await client...` usage.
+- SDK-shaped `SupermemoryInterface` for the v5 memory-domain surface only.
+- Vendored TypeScript types aligned with `supermemory@5.0.1` declarations.
+- Awaitable `APIPromise<T>` compatibility for normal `await client...` usage, with
+  optional `withRawResponse()`.
+- Per-call `RequestOptions` (`timeoutInSeconds`, `maxRetries`, `abortSignal`, `headers`,
+  ...) matching the SDK.
 - Runtime-portable library types for npm-compatible consumers across Node.js, Bun,
   Vite/browser bundles, and edge runtimes.
 
 ### Included surface
 
-- `client.add(...)`
-- `client.profile(...)`
-- `client.documents.*`
-- `client.search.*`
-- `client.memories.*`
+- `client.add(namespace, ...)`
+- `client.search(namespace, ...)`
+- `client.profile(namespace, ...)` and `client.profileMarkdown(namespace, ...)`
+- `client.list(namespace, "documents" | "chunks" | "memories", ...)`
+- `client.documents.{get,update,delete,batchAdd,uploadFile}`
+- `client.memories.{get,forget,forgetMatching}`
 
-### Excluded for v0
+Optional interfaces that adapters may implement, not required by `SupermemoryInterface`:
+`SupermemoryDocumentFilesInterface` (`replaceWithFile`/`updateFile`),
+`SupermemoryProfilesInterface` (buckets), and `SupermemoryNamespacesInterface`.
 
-Settings, connections, raw HTTP helpers, constructor/auth compatibility,
-`Supermemory.local`, error classes, and hosted HTTP replacement.
+### Excluded
+
+Connectors, organization settings, raw HTTP helpers, constructor/auth compatibility,
+error classes, and hosted HTTP replacement.
+
+### Migrating an adapter from the v4 contract
+
+See the v4 → v5 tables in `COMPATIBILITY.md`.
 
 ## Validation
 
@@ -129,11 +154,17 @@ bun run typecheck
 
 This repo's test suite checks two things:
 
-- **Type-level compatibility** (`supermemory-sdk-compat.test-d.ts`): every `memsdk` type
-  is a structural subtype of the corresponding type from the official `supermemory` npm
-  package. This catches SDK API drift at compile time.
+- **Type-level compatibility** (`supermemory-sdk-compat.test-d.ts`): every `memsdk`
+  request and response type is mutually assignable with, and has the same keys at every
+  depth as, the corresponding type from the official `supermemory` npm package. This
+  catches SDK API drift at compile time.
 - **Synthetic schema sanity** (`supermemory-compat.test.ts`): hand-written fixtures (not
   server-recorded) validate Zod schema parsing and the interface's mockability.
+
+A weekly scheduled CI job (also runnable via `workflow_dispatch`) checks for upstream
+drift: `bun run drift:sdk` typechecks the contract against `supermemory@latest`, and
+`bun run drift:openapi` compares the live v5 OpenAPI operation list against
+`test/fixtures/openapi-v5.operations.txt`.
 
 The test suite does **not** observe a running Supermemory server. End-to-end behavioral
 conformance lives in the separate

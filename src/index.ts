@@ -1,483 +1,581 @@
-export interface APIPromise<T> extends Promise<T> {
-  asResponse?: () => Promise<Response>
-  withResponse?: () => Promise<{ data: T; response: Response }>
+export type RawResponse = {
+  readonly headers: Headers
+  readonly redirected: boolean
+  readonly status: number
+  readonly statusText: string
+  readonly type: "basic" | "cors" | "default" | "error" | "opaque" | "opaqueredirect"
+  readonly url: string
 }
 
-export type HeadersLike =
-  Headers | Record<string, string | null | undefined> | Array<[string, string]>
+export interface WithRawResponse<T> {
+  readonly data: T
+  readonly rawResponse: RawResponse
+}
+
+export interface APIPromise<T> extends Promise<T> {
+  withRawResponse?: () => Promise<WithRawResponse<T>>
+}
+
+export type Supplier<T> = T | Promise<T> | (() => T | Promise<T>)
 
 export type RequestOptions = {
-  method?: string
-  path?: string
-  query?: object | undefined | null
-  body?: unknown
-  headers?: HeadersLike
+  timeoutInSeconds?: number
   maxRetries?: number
-  stream?: boolean | undefined
-  timeout?: number
-  fetchOptions?: RequestInit
-  signal?: AbortSignal | undefined | null
-  idempotencyKey?: string
-  defaultBaseURL?: string | undefined
-  __binaryResponse?: boolean | undefined
+  abortSignal?: AbortSignal
+  queryParams?: Record<string, unknown>
+  additionalBodyParameters?: Record<string, unknown>
+  headers?: Record<
+    string,
+    string | Supplier<string | null | undefined> | null | undefined
+  >
+  stream?: {
+    reconnectionEnabled?: boolean
+    maxReconnectionAttempts?: number
+  }
 }
 
-type FsReadStream = AsyncIterable<Uint8Array> & {
-  path: string | { toString(): string }
+export type UploadableFileLike =
+  | ArrayBuffer
+  | ArrayBufferLike
+  | ArrayBufferView
+  | Uint8Array
+  | Blob
+  | File
+  | ReadableStream
+
+export type Uploadable =
+  | UploadableFileLike
+  | {
+      path: string
+      filename?: string
+      contentType?: string
+      contentLength?: number
+    }
+  | {
+      data: UploadableFileLike
+      filename?: string
+      contentType?: string
+      contentLength?: number
+    }
+
+export type MetadataValue = string | number | boolean | Array<string>
+
+export type Metadata = Record<string, MetadataValue>
+
+export type TaskType = "memory" | "superrag"
+
+export type Dreaming = "dynamic" | "instant"
+
+export type FileType = "text" | "pdf" | "image" | "video" | "audio"
+
+export type ProcessingStatus =
+  | "unknown"
+  | "queued"
+  | "extracting"
+  | "chunking"
+  | "embedding"
+  | "indexing"
+  | "done"
+  | "failed"
+
+export type FilterPredicate =
+  | {
+      field: string
+      operator: "eq" | "neq"
+      value: string
+      caseSensitive?: boolean | undefined
+    }
+  | { field: string; operator: "eq" | "neq"; value: number | boolean }
+  | { field: string; operator: "gt" | "gte" | "lt" | "lte"; value: number }
+  | {
+      field: string
+      operator: "contains" | "notContains"
+      value: string
+      caseSensitive?: boolean | undefined
+    }
+  | { field: string; operator: "arrayContains" | "arrayNotContains"; value: string }
+
+export type FilterExpression =
+  | FilterPredicate
+  | { operator: "and"; operands: Array<FilterExpression> }
+  | { operator: "or"; operands: Array<FilterExpression> }
+
+export type SystemTimestamps = {
+  createdAt: string
+  updatedAt: string
 }
 
-interface BunFile extends Blob {
-  readonly name?: string | undefined
+export type MemoryRelation = "updates" | "extends" | "derives"
+
+export interface IncludedDocument {
+  id: string
+  title: string | null
+  type: string | null
+  metadata: Record<string, unknown>
+  summary: string | null
+  system: SystemTimestamps
 }
 
-export type Uploadable = File | Response | FsReadStream | BunFile
-
-export type Metadata = {
-  [key: string]: string | number | boolean | Array<string>
+export interface RelatedMemory {
+  id: string
+  relation: MemoryRelation
+  version?: number | null | undefined
+  memory: string
+  metadata: Record<string, unknown>
+  system: { updatedAt: string }
 }
 
-export type QueryFilter = {
-  key: string
-  value: string
-  filterType?: "metadata" | "numeric" | "array_contains" | "string_contains"
-  ignoreCase?: boolean | "true" | "false"
-  negate?: boolean | "true" | "false"
-  numericOperator?: ">" | "<" | ">=" | "<=" | "="
+export interface IncludedContext<TRelated> {
+  related?:
+    | {
+        parents: Array<TRelated>
+        children: Array<TRelated>
+        siblings: Array<TRelated>
+      }
+    | undefined
+  document?: IncludedDocument | undefined
 }
 
-export type QueryExpression =
-  QueryFilter | { OR: Array<QueryExpression> } | { AND: Array<QueryExpression> }
+export interface MemoryRecord {
+  id: string
+  memory: string
+  metadata: Record<string, unknown>
+  isStatic: boolean
+  isInference: boolean
+  isLatest: boolean
+  isForgotten: boolean
+  version: number
+  system: SystemTimestamps
+}
+
+export interface ChunkRecord {
+  id: string
+  position: number
+  content: string
+  type: string
+  metadata: Record<string, unknown>
+  system: { createdAt: string }
+}
+
+export interface Pagination {
+  currentPage: number
+  limit?: number | undefined
+  totalItems: number
+  totalPages: number
+}
 
 export interface AddParams {
   content: string
-  containerTag?: string
-  /** @deprecated */
-  containerTags?: Array<string>
-  customId?: string
-  entityContext?: string
-  filepath?: string
+  id?: string
+  supportingContext?: string
   metadata?: Metadata
-  taskType?: "memory" | "superrag"
+  group?: Record<string, MetadataValue>
+  date?: string
+  taskType?: TaskType
+  dreaming?: Dreaming
 }
 
 export interface AddResponse {
   id: string
-  status: string
+  status: ProcessingStatus
+}
+
+export type SearchMode = "hybrid" | "memories" | "chunks"
+
+export type Rerank = "none" | "order" | "aggregate"
+
+export interface SearchParams {
+  query: string
+  filter?: FilterExpression
+  searchMode?: SearchMode
+  limit?: number
+  include?: {
+    documents?: boolean | undefined
+    related?: boolean | undefined
+    forgotten?: boolean | undefined
+  }
+  threshold?: number
+  rerank?: Rerank
+  rewriteQuery?: boolean
+}
+
+export interface SearchResult {
+  id: string
+  memory?: string | undefined
+  chunk?: string | undefined
+  metadata: Record<string, unknown>
+  similarity: number
+  isLatest: boolean
+  isInference: boolean
+  system: { updatedAt: string; createdAt?: string | undefined }
+  included?: IncludedContext<RelatedMemory> | undefined
+}
+
+export interface SearchResponse {
+  results: Array<SearchResult>
+  searchTime: number
 }
 
 export interface ProfileParams {
-  containerTag: string
-  filters?: QueryExpression
-  q?: string
-  threshold?: number
+  filter?: FilterExpression
+  buckets?: Array<string>
+}
+
+export interface ProfileMemory {
+  id: string
+  memory: string
 }
 
 export interface ProfileResponse {
   profile: {
-    dynamic: Array<string>
-    static: Array<string>
-  }
-  searchResults?: {
-    results: Array<unknown>
-    timing: number
-    total: number
+    static: Array<ProfileMemory>
+    dynamic: Array<ProfileMemory>
+    buckets: Record<string, Array<ProfileMemory>>
   }
 }
 
+export type ListType = "documents" | "chunks" | "memories"
+
+export interface ListParams {
+  page?: number
+  limit?: number
+  sort?: "createdAt" | "updatedAt" | "position"
+  order?: "asc" | "desc"
+  filter?: FilterExpression
+  include?: { forgotten?: boolean | undefined }
+}
+
+export interface ListDocument {
+  id: string
+  title: string | null
+  type: string
+  summary: string | null
+  metadata: Record<string, unknown>
+  url: string | null
+  system: SystemTimestamps & { status: string }
+}
+
+export interface ListChunk extends ChunkRecord {
+  documentId: string
+}
+
+export interface ListResponse {
+  documents: Array<ListDocument>
+  chunks: Array<ListChunk>
+  memories: Array<MemoryRecord>
+  pagination: Pagination
+}
+
+export interface DocumentGetParams {
+  include?: DocumentInclude | Array<DocumentInclude>
+}
+
+export type DocumentInclude = "chunks" | "memories"
+
+export interface DocumentGetResponse {
+  id: string
+  title: string | null
+  type: string
+  summary: string | null
+  content: string | null
+  metadata: Record<string, unknown>
+  system: SystemTimestamps & { status: ProcessingStatus }
+  chunks?: Array<ChunkRecord> | undefined
+  memories?: Array<MemoryRecord> | undefined
+}
+
 export interface DocumentUpdateParams {
-  containerTag?: string
-  /** @deprecated */
-  containerTags?: Array<string>
   content?: string
-  customId?: string
-  filepath?: string
+  supportingContext?: string
   metadata?: Metadata
-  taskType?: "memory" | "superrag"
+  group?: Record<string, MetadataValue>
+  date?: string
+  taskType?: TaskType
+  dreaming?: Dreaming
 }
 
 export interface DocumentUpdateResponse {
   id: string
-  status: string
+  status: ProcessingStatus
 }
 
-export interface DocumentListParams {
-  /** @deprecated */
-  containerTags?: Array<string>
-  filepath?: string
-  filters?: QueryExpression
-  includeContent?: boolean
-  limit?: string | number
-  order?: "asc" | "desc"
-  page?: string | number
-  sort?: "createdAt" | "updatedAt"
+export interface DocumentDeleteParams {
+  ids: Array<string>
 }
 
-export interface DocumentListResponse {
-  memories: Array<DocumentListMemory>
-  pagination: {
-    currentPage: number
-    totalItems: number
-    totalPages: number
-    limit?: number
-  }
+export interface DocumentDeleteResponse {
+  count: number
+  errors: Array<{ id: string; error: string }>
 }
 
-export interface DocumentListMemory {
-  id: string
-  connectionId: string | null
-  createdAt: string
-  customId: string | null
-  filepath: string | null
-  metadata: string | number | boolean | Record<string, unknown> | Array<unknown> | null
-  status:
-    | "unknown"
-    | "queued"
-    | "extracting"
-    | "chunking"
-    | "embedding"
-    | "indexing"
-    | "done"
-    | "failed"
-  summary: string | null
-  title: string | null
-  type: DocumentType
-  updatedAt: string
-  /** @deprecated */
-  containerTags?: Array<string>
-  content?: string
-  url?: string | null
-}
-
-export type DocumentType =
-  | "text"
-  | "pdf"
-  | "tweet"
-  | "google_doc"
-  | "google_slide"
-  | "google_sheet"
-  | "image"
-  | "video"
-  | "audio"
-  | "notion_doc"
-  | "webpage"
-  | "onedrive"
-  | "github_markdown"
-
-export interface DocumentAddParams extends AddParams {}
-
-export interface DocumentAddResponse extends AddResponse {}
-
-export interface DocumentBatchAddParams extends Omit<AddParams, "content"> {
-  documents: Array<AddParams> | Array<string>
-  content?: null
+export interface DocumentBatchAddParams {
+  documents: Array<{
+    content: string
+    id?: string | undefined
+    supportingContext?: string | undefined
+    metadata?: Metadata | undefined
+    group?: Record<string, MetadataValue> | undefined
+    date?: string | undefined
+  }>
+  taskType?: TaskType
+  dreaming?: Dreaming
 }
 
 export interface DocumentBatchAddResponse {
-  failed: number
   results: Array<{
     id: string
-    status: string
-    details?: string
-    error?: string
+    status: ProcessingStatus | "error"
+    error?: string | undefined
+    details?: string | undefined
+    url?: string | undefined
   }>
-  success: number
+  count: number
+  failed: number
 }
 
-export interface DocumentDeleteBulkParams {
-  ids?: Array<string>
-  containerTags?: Array<string>
-}
-
-export interface DocumentDeleteBulkResponse {
-  deletedCount: number
-  success: boolean
-  /** @deprecated */
-  containerTags?: Array<string>
-  errors?: Array<{ id: string; error: string }>
-}
-
-export interface DocumentGetResponse {
-  id: string
-  connectionId: string | null
-  content: string | null
-  createdAt: string
-  customId: string | null
-  filepath: string | null
-  metadata: string | number | boolean | Record<string, unknown> | Array<unknown> | null
-  ogImage: string | null
-  raw: unknown
-  source: string | null
-  spatialPoint: unknown
-  status:
-    | "unknown"
-    | "queued"
-    | "extracting"
-    | "chunking"
-    | "embedding"
-    | "indexing"
-    | "done"
-    | "failed"
-  summary: string | null
-  taskType: "memory" | "superrag"
-  title: string | null
-  type: DocumentType
-  updatedAt: string
-  /** @deprecated */
-  containerTags?: Array<string>
-  url?: string | null
-}
-
-export interface DocumentListProcessingResponse {
-  documents: Array<DocumentListMemory>
-  totalCount: number
-}
-
-export interface DocumentUploadFileParams {
-  file: Uploadable
-  containerTag?: string
-  /** @deprecated */
-  containerTags?: string
-  filepath?: string
-  fileType?: string
+/** Multipart form fields: `metadata` and `group` are JSON-encoded strings. */
+export interface DocumentFileParams {
+  supportingContext?: string
   metadata?: string
+  group?: string
+  date?: string
+  taskType?: TaskType
+  dreaming?: Dreaming
+  fileType?: FileType
   mimeType?: string
-  taskType?: "memory" | "superrag"
-  /** @deprecated */
-  useAdvancedProcessing?: string
 }
 
-export interface DocumentUploadFileResponse extends AddResponse {}
-
-export interface SearchDocumentsParams {
-  q: string
-  /** @deprecated */
-  categoriesFilter?: Array<string>
-  chunkThreshold?: number
-  containerTag?: string
-  containerTags?: Array<string>
-  docId?: string
-  /** @deprecated */
-  documentThreshold?: number
-  filepath?: string
-  filters?: QueryExpression
-  includeFullDocs?: boolean
-  includeSummary?: boolean
-  limit?: number
-  onlyMatchingChunks?: boolean
-  rerank?: boolean
-  rewriteQuery?: boolean
+export interface DocumentUploadFileParams extends DocumentFileParams {
+  file: Uploadable
 }
 
-export interface SearchExecuteParams extends SearchDocumentsParams {}
-
-export interface SearchDocumentsResponse {
-  results: Array<SearchDocumentResult>
-  timing: number
-  total: number
+export interface DocumentReplaceWithFileParams extends DocumentFileParams {
+  file: Uploadable
 }
 
-export interface SearchExecuteResponse extends SearchDocumentsResponse {}
-
-export interface SearchDocumentResult {
-  chunks: Array<{ content: string; isRelevant: boolean; score: number }>
-  createdAt: string
-  documentId: string
-  metadata: Record<string, unknown> | null
-  score: number
-  title: string | null
-  type: string | null
-  updatedAt: string
-  content?: string | null
-  summary?: string | null
+export interface DocumentUpdateFileParams extends DocumentFileParams {
+  file?: Uploadable | undefined
 }
 
-export interface SearchMemoriesParams {
-  q: string
-  aggregate?: boolean
-  containerTag?: string
-  filepath?: string
-  filters?: QueryExpression
-  include?: {
-    documents?: boolean
-    summaries?: boolean
-    relatedMemories?: boolean
-    chunks?: boolean
-  }
-  limit?: number
-  rerank?: boolean
-  rewriteQuery?: boolean
-  searchMode?: "memories" | "hybrid" | "documents"
-  threshold?: number
-}
-
-export interface SearchMemoriesResponse {
-  results: Array<SearchMemoryResult>
-  timing: number
-  total: number
-}
-
-export type SearchParams = SearchMemoriesParams
-export type SearchResponse = SearchMemoriesResponse
-
-export interface SearchMemoryResult {
+export interface DocumentFileResponse {
   id: string
-  metadata: Record<string, unknown> | null
-  similarity: number
-  updatedAt: string
-  chunk?: string
-  chunks?: Array<{
-    content: string
-    documentId: string
-    position: number
-    score: number
-  }>
-  context?: {
-    children?: Array<SearchMemoryContext>
-    parents?: Array<SearchMemoryContext>
-    related?: Array<SearchMemoryRelatedContext>
-  }
-  documents?: Array<{
-    id: string
-    createdAt: string
-    updatedAt: string
-    metadata?: Record<string, unknown> | null
-    summary?: string | null
-    title?: string
-    type?: string
-  }>
-  filepath?: string | null
-  isAggregated?: boolean
-  memory?: string
-  version?: number | null
+  status: ProcessingStatus
 }
 
-export interface SearchMemoryContext {
-  memory: string
-  relation: "updates" | "extends" | "derives"
-  updatedAt: string
-  metadata?: Record<string, unknown> | null
-  version?: number | null
+export type MemoryInclude = "related" | "documents"
+
+export interface MemoryGetParams {
+  include?: MemoryInclude | Array<MemoryInclude>
+  relatedLimit?: number
 }
 
-export interface SearchMemoryRelatedContext {
-  memory: string
-  relation: "extends" | "derives"
-  updatedAt: string
-  metadata?: Record<string, unknown> | null
+export interface MemoryGetResponse extends MemoryRecord {
+  included?:
+    | IncludedContext<RelatedMemory & { document?: IncludedDocument | undefined }>
+    | undefined
 }
 
 export interface MemoryForgetParams {
-  containerTag: string
-  id?: string
-  content?: string
-  reason?: string
+  ids: Array<string>
+}
+
+export interface MemoryForgetMatchingParams {
+  query: string
+  dryRun: boolean
 }
 
 export interface MemoryForgetResponse {
-  id: string
-  forgotten: boolean
+  count: number
+  errors: Array<{ id: string; error: string }>
+  matches: Array<ProfileMemory>
 }
 
-export interface MemoryUpdateMemoryParams {
-  containerTag: string
-  newContent: string
-  id?: string
-  content?: string
-  forgetAfter?: string | null
-  forgetReason?: string | null
-  metadata?: Metadata
-  temporalContext?: {
-    documentDate?: string | null
-    eventDate?: Array<string> | null
-  }
+export interface ProfileBucketsResponse {
+  buckets: Record<string, string>
 }
 
-export interface MemoryUpdateMemoryResponse {
-  id: string
-  createdAt: string
-  forgetAfter: string | null
-  forgetReason: string | null
-  memory: string
-  parentMemoryId: string | null
-  rootMemoryId: string | null
-  version: number
+export interface NamespaceListParams {
+  page?: number
+  limit?: number
 }
+
+export interface NamespaceListResponse {
+  namespaces: Array<{
+    id: string
+    namespace: string
+    documentCount: number
+    memoryCount: number
+    description: string | null
+    system: SystemTimestamps
+  }>
+  pagination: Pagination
+}
+
+export interface NamespaceResponse {
+  namespace: string
+  supportingContext: string | null
+  system: SystemTimestamps
+}
+
+export interface NamespaceUpdateParams {
+  supportingContext?: string | null
+}
+
+export interface NamespaceDeleteParams {
+  moveTo?: string
+}
+
+export type NamespaceDeleteResponse =
+  | {
+      status: "deleted"
+      namespace: string
+      deletedDocumentsCount: number
+      deletedMemoriesCount: number
+    }
+  | { status: "queued"; operationId: string; namespace: string; moveTo: string }
 
 export interface SupermemoryDocumentsInterface {
-  update(
+  get(
+    namespace: string,
     id: string,
-    body: DocumentUpdateParams,
+    request?: DocumentGetParams,
+    options?: RequestOptions,
+  ): APIPromise<DocumentGetResponse>
+  update(
+    namespace: string,
+    id: string,
+    request?: DocumentUpdateParams,
     options?: RequestOptions,
   ): APIPromise<DocumentUpdateResponse>
-  list(
-    body: DocumentListParams,
+  delete(
+    namespace: string,
+    request: DocumentDeleteParams,
     options?: RequestOptions,
-  ): APIPromise<DocumentListResponse>
-  delete(id: string, options?: RequestOptions): APIPromise<void>
-  add(
-    body: DocumentAddParams,
-    options?: RequestOptions,
-  ): APIPromise<DocumentAddResponse>
+  ): APIPromise<DocumentDeleteResponse>
   batchAdd(
-    body: DocumentBatchAddParams,
+    namespace: string,
+    request: DocumentBatchAddParams,
     options?: RequestOptions,
   ): APIPromise<DocumentBatchAddResponse>
-  deleteBulk(
-    body: DocumentDeleteBulkParams,
-    options?: RequestOptions,
-  ): APIPromise<DocumentDeleteBulkResponse>
-  get(id: string, options?: RequestOptions): APIPromise<DocumentGetResponse>
-  listProcessing(options?: RequestOptions): APIPromise<DocumentListProcessingResponse>
   uploadFile(
-    body: DocumentUploadFileParams,
+    namespace: string,
+    request: DocumentUploadFileParams,
     options?: RequestOptions,
-  ): APIPromise<DocumentUploadFileResponse>
+  ): APIPromise<DocumentFileResponse>
 }
 
-export interface SupermemorySearchInterface {
-  (
-    body: SearchMemoriesParams,
+/** Optional: file replacement on existing documents. Not required by `SupermemoryInterface`. */
+export interface SupermemoryDocumentFilesInterface {
+  replaceWithFile(
+    namespace: string,
+    id: string,
+    request: DocumentReplaceWithFileParams,
     options?: RequestOptions,
-  ): APIPromise<SearchMemoriesResponse>
-  /** @deprecated Use `client.search()` for v4 memory search. */
-  documents(
-    body: SearchDocumentsParams,
+  ): APIPromise<DocumentFileResponse>
+  updateFile(
+    namespace: string,
+    id: string,
+    request: DocumentUpdateFileParams,
     options?: RequestOptions,
-  ): APIPromise<SearchDocumentsResponse>
-  /** @deprecated Use `client.search()` for v4 memory search. */
-  execute(
-    body: SearchExecuteParams,
-    options?: RequestOptions,
-  ): APIPromise<SearchExecuteResponse>
-  /** @deprecated Use `client.search()` instead. */
-  memories(
-    body: SearchMemoriesParams,
-    options?: RequestOptions,
-  ): APIPromise<SearchMemoriesResponse>
+  ): APIPromise<DocumentFileResponse>
 }
 
 export interface SupermemoryMemoriesInterface {
+  get(
+    namespace: string,
+    id: string,
+    request?: MemoryGetParams,
+    options?: RequestOptions,
+  ): APIPromise<MemoryGetResponse>
   forget(
-    body: MemoryForgetParams,
+    namespace: string,
+    request: MemoryForgetParams,
     options?: RequestOptions,
   ): APIPromise<MemoryForgetResponse>
-  updateMemory(
-    body: MemoryUpdateMemoryParams,
+  forgetMatching(
+    namespace: string,
+    request: MemoryForgetMatchingParams,
     options?: RequestOptions,
-  ): APIPromise<MemoryUpdateMemoryResponse>
+  ): APIPromise<MemoryForgetResponse>
+}
+
+/** Optional: profile bucket configuration. Not required by `SupermemoryInterface`. */
+export interface SupermemoryProfilesInterface {
+  getBuckets(
+    namespace: string,
+    request?: Record<string, never>,
+    options?: RequestOptions,
+  ): APIPromise<ProfileBucketsResponse>
+  setBuckets(
+    namespace: string,
+    request: { buckets: Record<string, string> },
+    options?: RequestOptions,
+  ): APIPromise<ProfileBucketsResponse>
+  deleteBuckets(
+    namespace: string,
+    request: { buckets: Array<string> },
+    options?: RequestOptions,
+  ): APIPromise<ProfileBucketsResponse>
+}
+
+/** Optional: namespace administration. Not required by `SupermemoryInterface`. */
+export interface SupermemoryNamespacesInterface {
+  list(
+    request?: NamespaceListParams,
+    options?: RequestOptions,
+  ): APIPromise<NamespaceListResponse>
+  get(
+    namespace: string,
+    request?: Record<string, never>,
+    options?: RequestOptions,
+  ): APIPromise<NamespaceResponse>
+  update(
+    namespace: string,
+    request?: NamespaceUpdateParams,
+    options?: RequestOptions,
+  ): APIPromise<NamespaceResponse>
+  delete(
+    namespace: string,
+    request?: NamespaceDeleteParams,
+    options?: RequestOptions,
+  ): APIPromise<NamespaceDeleteResponse>
 }
 
 export interface SupermemoryInterface {
-  add(body: AddParams, options?: RequestOptions): APIPromise<AddResponse>
-  profile(body: ProfileParams, options?: RequestOptions): APIPromise<ProfileResponse>
+  add(
+    namespace: string,
+    request: AddParams,
+    options?: RequestOptions,
+  ): APIPromise<AddResponse>
+  search(
+    namespace: string,
+    request: SearchParams,
+    options?: RequestOptions,
+  ): APIPromise<SearchResponse>
+  profile(
+    namespace: string,
+    request?: ProfileParams,
+    options?: RequestOptions,
+  ): APIPromise<ProfileResponse>
+  /** The profile as a markdown document (`Accept: text/markdown`). */
+  profileMarkdown(
+    namespace: string,
+    request?: ProfileParams,
+    options?: RequestOptions,
+  ): Promise<string>
+  list(
+    namespace: string,
+    type: ListType,
+    request?: ListParams,
+    options?: RequestOptions,
+  ): APIPromise<ListResponse>
   documents: SupermemoryDocumentsInterface
-  search: SupermemorySearchInterface
   memories: SupermemoryMemoriesInterface
 }
 
 export const supermemoryCompatibility = {
-  openapiSource: "https://api.supermemory.ai/v3/openapi",
-  openapiVersion: "3.0.0",
-  sdkPackage: "supermemory@4.24.2",
-  sdkGitHead: "e2e8b3945793a6cf1d08f73f8b809db247a65dc5",
+  openapiSource: "https://api.supermemory.ai/v5/openapi",
+  openapiVersion: "3.1.0",
+  sdkPackage: "supermemory@5.0.1",
+  sdkGitHead: "0ec1ac77e0d35a0b9440a08b2d2331f43fcc56ba",
 } as const
