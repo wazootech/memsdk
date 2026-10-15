@@ -31,10 +31,14 @@ upstream and shut down on 2026-12-31; `memsdk` no longer describes them.
 - Observed server fixtures: not yet included in this repo.
 - External behavioral evidence: [`memsdk-e2e`](https://github.com/wazootech/memsdk-e2e)
   runs 11 conformance scenarios against Supermemory local and Letta Docker. Against the
-  v5 contract (2026-10-08): Letta Docker passes 11/11 with no skips; Supermemory local
-  is blocked because the latest local server (`supermemory-server` 0.0.8) serves only
-  v3/v4 routes and returns 404 for `/ns/{namespace}/*`. The earlier 10/10 parity on both
-  backends was measured against the v4 contract.
+  v5 contract (2026-10-14): Letta Docker passes 11/11 with no skips; Supermemory local
+  passes 11/11 with `supermemory-server` 0.0.9+, but its memory scenarios are vacuous —
+  no memories are extracted before the assertions. The extraction agent is tool-calling,
+  and the default model returns no `tool_calls`; a tool-calling model does drive it, but
+  completes ~80 s after `add`, past the scenarios' ~60 s waits. Everything outside
+  memory (add/get, chunk search, profile shape/markdown, documents
+  list/batch/update/delete, file upload) is genuinely exercised. The earlier 10/10
+  parity on both backends was measured against the v4 contract.
 
 ## Call Convention
 
@@ -184,9 +188,11 @@ scenarios against Letta Docker. Behavior specific to Letta's immutable passages
 - Required interface conformance: method/resource shape exists, params/responses
   type-check, methods are awaitable.
 - Required behavior conformance: core add/get/list/search/update/delete flows and
-  persistence within a test run. Verified against v5 on Letta Docker (11/11) via
-  external [memsdk-e2e](https://github.com/wazootech/memsdk-e2e); Supermemory local is
-  blocked on a v5-capable local server. Not reproduced by `bun test` in this repo.
+  persistence within a test run. Verified against v5 on Letta Docker (11/11) and
+  Supermemory local (11/11, `supermemory-server` 0.0.9+; its memory scenarios observe no
+  extracted memories — see the external evidence note above) via external
+  [memsdk-e2e](https://github.com/wazootech/memsdk-e2e). Not reproduced by `bun test` in
+  this repo.
 - Optional capability conformance: `uploadFile` behavior, the optional resource
   interfaces, `withRawResponse()`, exact transport options, and exact error
   classes/messages.
