@@ -27,7 +27,7 @@
     "drift:sdk": "bun add -d --exact supermemory@latest && bun run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "prepare": "npm run build",
     "test": "bun test",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.nodom.json && tsc -p tsconfig.test.json --noEmit"
