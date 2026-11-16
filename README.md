@@ -1,3 +1,14 @@
+<p align="center">
+  <a href="https://docs.wazoo.dev">
+    <img src="https://wazoo.dev/assets/wazoo.svg" alt="Wazoo" width="120" />
+  </a>
+  <br /><br />
+  <em>A portable TypeScript SDK for AI memory with a Supermemory-compatible interface.</em>
+  <br /><br />
+  <a href="https://github.com/wazootech/memsdk"><img src="https://img.shields.io/badge/GitHub-black?logo=github" alt="GitHub" /></a>
+  <a href="https://deepwiki.com/wazootech/memsdk"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" /></a>
+</p>
+
 # memsdk
 
 ## The problem
