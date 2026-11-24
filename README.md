@@ -84,25 +84,51 @@ npm install github:wazootech/memsdk#<tag-or-commit>
 The package builds from source during installation via `prepare`, then exposes the
 compiled ESM entrypoint and TypeScript declarations from `dist`.
 
+### CDN (browser / no build step)
+
+[esm.sh](https://esm.sh) serves memsdk from GitHub as a browser ES module. Use the
+`supermemoryCompatibility` runtime export to inspect the upstream SDK version. The SDK
+interface itself is available through `import type` in TypeScript.
+
+Use a direct import in a browser module script:
+
+```js
+import { supermemoryCompatibility } from "https://esm.sh/gh/wazootech/memsdk"
+
+console.log(supermemoryCompatibility.sdkPackage)
+```
+
+An import map lets you use the package name in HTML:
+
+```html
+<script type="importmap">
+  {
+    "imports": {
+      "memsdk": "https://esm.sh/gh/wazootech/memsdk"
+    }
+  }
+</script>
+<script type="module">
+  import { supermemoryCompatibility } from "memsdk"
+
+  console.log(supermemoryCompatibility.sdkPackage)
+</script>
+```
+
 ### Runtime support
 
 `memsdk` is plain ESM compiled with `tsc`, `zod` is the only runtime dependency, and the
 package declares no `engines` constraint. Runtime support therefore comes down to how
 the package is resolved, not to runtime-specific code:
 
-| Runtime       | Status                    | Resolution path                                                                                   |
-| ------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
-| Node.js       | Supported                 | Any npm-compatible package manager (`npm`, `pnpm`, `yarn`)                                        |
-| Bun           | Supported                 | `bun add github:wazootech/memsdk`                                                                 |
-| Vite/browser  | Supported through bundler | Package dependency, then import normally from app code                                            |
-| Edge runtimes | Supported through bundler | Package dependency, bundled by the platform deployer                                              |
-| Deno          | Not first-class yet       | Blocked by distribution channel, not the runtime: `npm:` specifiers need an npm-registry artifact |
-| Browser/CDN   | Not first-class yet       | Blocked by distribution channel: esm.sh/jsdelivr/unpkg resolve npm packages                       |
-
-Because `memsdk` is primarily a TypeScript contract plus Zod schemas, browser and edge
-use should go through a bundler today. Direct `<script>`/CDN usage is not a supported
-distribution path yet. Publishing to the npm registry would unblock Deno `npm:`
-specifiers, browser CDNs, and edge registries from a single artifact.
+| Runtime       | Status                    | Resolution path                                            |
+| ------------- | ------------------------- | ---------------------------------------------------------- |
+| Node.js       | Supported                 | Any npm-compatible package manager (`npm`, `pnpm`, `yarn`) |
+| Bun           | Supported                 | `bun add github:wazootech/memsdk`                          |
+| Vite/browser  | Supported through bundler | Package dependency, then import normally from app code     |
+| Edge runtimes | Supported through bundler | Package dependency, bundled by the platform deployer       |
+| Deno          | Supported via URL         | Import from the esm.sh GitHub URL                          |
+| Browser/CDN   | Supported via esm.sh      | Direct ES module import or HTML import map                 |
 
 ## It works
 
