@@ -35,7 +35,7 @@ for what a memory backend should look like.
 `memsdk` extracts Supermemory's public API surface into a backend-agnostic TypeScript
 contract:
 
-- **`SupermemoryInterface`**: a type-level contract for memory backends (~580 lines)
+- **`MemsdkInterface`**: a type-level contract for memory backends (~580 lines)
 - **Zod schemas**: runtime request validation (~260 lines)
 - **Zero runtime deps** beyond `zod`
 
@@ -46,9 +46,9 @@ The contract follows Supermemory API v5: every content operation is scoped to a
 any other URL values, then one options object.
 
 ```ts
-import type { SupermemoryInterface } from "memsdk"
+import type { MemsdkInterface } from "memsdk"
 
-async function buildApp(client: SupermemoryInterface) {
+async function buildApp(client: MemsdkInterface) {
   // works against any backend that implements the contract
   const doc = await client.add("user_alex", { content: "...", dreaming: "instant" })
   const { results } = await client.search("user_alex", {
@@ -109,18 +109,18 @@ specifiers, browser CDNs, and edge registries from a single artifact.
 - **Type-level compatibility** is verified at compile time against the official
   `supermemory@5.0.1` npm package, in both directions: every request and response type
   matches the SDK's key-for-key, and the official client is itself assignable to
-  `SupermemoryInterface`.
+  `MemsdkInterface`.
 - [**memsdk-e2e**](https://github.com/wazootech/memsdk-e2e): 11 conformance scenarios
   run identically against Supermemory local and Letta Docker. On the v5 contract, Letta
   passes 11/11; Supermemory local passes 11/11 with `supermemory-server` 0.0.9+, but its
   memory-extraction scenarios are vacuous (see `COMPATIBILITY.md`).
 - [**memsdk-letta**](https://github.com/wazootech/memsdk-letta): a Letta adapter that
-  implements `SupermemoryInterface` via `@letta-ai/letta-client`, verified live against
-  the v5 contract.
+  implements `MemsdkInterface` via `@letta-ai/letta-client`, verified live against the
+  v5 contract.
 
 ## Current scope
 
-- SDK-shaped `SupermemoryInterface` for the v5 memory-domain surface only.
+- SDK-shaped `MemsdkInterface` for the v5 memory-domain surface only.
 - Vendored TypeScript types aligned with `supermemory@5.0.1` declarations.
 - Awaitable `APIPromise<T>` compatibility for normal `await client...` usage, with
   optional `withRawResponse()`.
@@ -138,7 +138,7 @@ specifiers, browser CDNs, and edge registries from a single artifact.
 - `client.documents.{get,update,delete,batchAdd,uploadFile}`
 - `client.memories.{get,forget,forgetMatching}`
 
-Optional interfaces that adapters may implement, not required by `SupermemoryInterface`:
+Optional interfaces that adapters may implement, not required by `MemsdkInterface`:
 `SupermemoryDocumentFilesInterface` (`replaceWithFile`/`updateFile`),
 `SupermemoryProfilesInterface` (buckets), and `SupermemoryNamespacesInterface`.
 
