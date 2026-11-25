@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   schedule:
     # Weekly drift guard against the live Supermemory SDK and OpenAPI (Mondays 14:00 UTC).
