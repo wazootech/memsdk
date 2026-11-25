@@ -464,7 +464,7 @@ export interface SupermemoryDocumentsInterface {
   ): APIPromise<DocumentFileResponse>
 }
 
-/** Optional: file replacement on existing documents. Not required by `SupermemoryInterface`. */
+/** Optional: file replacement on existing documents. Not required by `MemsdkInterface`. */
 export interface SupermemoryDocumentFilesInterface {
   replaceWithFile(
     namespace: string,
@@ -499,7 +499,7 @@ export interface SupermemoryMemoriesInterface {
   ): APIPromise<MemoryForgetResponse>
 }
 
-/** Optional: profile bucket configuration. Not required by `SupermemoryInterface`. */
+/** Optional: profile bucket configuration. Not required by `MemsdkInterface`. */
 export interface SupermemoryProfilesInterface {
   getBuckets(
     namespace: string,
@@ -518,7 +518,7 @@ export interface SupermemoryProfilesInterface {
   ): APIPromise<ProfileBucketsResponse>
 }
 
-/** Optional: namespace administration. Not required by `SupermemoryInterface`. */
+/** Optional: namespace administration. Not required by `MemsdkInterface`. */
 export interface SupermemoryNamespacesInterface {
   list(
     request?: NamespaceListParams,
@@ -541,7 +541,11 @@ export interface SupermemoryNamespacesInterface {
   ): APIPromise<NamespaceDeleteResponse>
 }
 
-export interface SupermemoryInterface {
+/**
+ * MemsdkInterface defines the Supermemory v5-compatible contract that memory
+ * backend adapters implement.
+ */
+export interface MemsdkInterface {
   add(
     namespace: string,
     request: AddParams,
@@ -573,6 +577,13 @@ export interface SupermemoryInterface {
   memories: SupermemoryMemoriesInterface
 }
 
+/** @deprecated Use {@link MemsdkInterface} instead. */
+export type SupermemoryInterface = MemsdkInterface
+
+/**
+ * supermemoryCompatibility records the upstream OpenAPI and SDK versions used
+ * to verify {@link MemsdkInterface}.
+ */
 export const supermemoryCompatibility = {
   openapiSource: "https://api.supermemory.ai/v5/openapi",
   openapiVersion: "3.1.0",

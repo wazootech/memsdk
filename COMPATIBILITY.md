@@ -22,7 +22,7 @@ upstream and shut down on 2026-12-31; `memsdk` no longer describes them.
   awaitable method signatures. Verified at compile time against the official
   `supermemory@5.0.1` package: every request and response type is mutually assignable
   and key-for-key identical at every depth, and the official client is assignable to
-  `SupermemoryInterface` and each optional resource interface.
+  `MemsdkInterface` and each optional resource interface.
 - OpenAPI evidence: canonical HTTP/schema reference used for Zod schema bounds and
   defaults and to detect endpoint drift.
 - Synthetic schema fixtures: hand-written test data used for Zod schema sanity checks.
@@ -53,7 +53,7 @@ await client.list("user_alex", "memories", { limit: 20 })
 
 ## Included Surface
 
-Required by `SupermemoryInterface`:
+Required by `MemsdkInterface`:
 
 | Method                                                         | HTTP                                                     |
 | -------------------------------------------------------------- | -------------------------------------------------------- |
@@ -72,7 +72,7 @@ Required by `SupermemoryInterface`:
 | `client.memories.forgetMatching(namespace, { query, dryRun })` | `DELETE /ns/{namespace}/memories/semantic`               |
 
 Optional interfaces (exported, verified against the SDK, not required by
-`SupermemoryInterface`):
+`MemsdkInterface`):
 
 - `SupermemoryDocumentFilesInterface`: `documents.replaceWithFile`,
   `documents.updateFile`

@@ -23,6 +23,7 @@ import type {
   ListParams,
   ListResponse,
   ListType,
+  MemsdkInterface,
   MemoryForgetMatchingParams,
   MemoryForgetParams,
   MemoryForgetResponse,
@@ -88,6 +89,7 @@ type Profiles = Supermemory["profiles"]
 type Namespaces = Supermemory["namespaces"]
 
 type _Shared = [
+  Assert<Assignable<MemsdkInterface, SupermemoryInterface>>,
   Assert<Equal<RequestOptions, OfficialRequestOptions>>,
   Assert<Equal<FilterExpression, Arg<Supermemory["search"], 1>["filter"] & {}>>,
   // Every value memsdk accepts is accepted by the official SDK. The SDK also accepts
@@ -171,14 +173,14 @@ type _Namespaces = [
 // The official client is itself a valid memsdk implementation, including the optional
 // resource interfaces.
 declare const official: Supermemory
-export const _client: SupermemoryInterface = official
+export const _client: MemsdkInterface = official
 export const _files: SupermemoryDocumentFilesInterface = official.documents
 export const _profiles: SupermemoryProfilesInterface = official.profiles
 export const _namespaces: SupermemoryNamespacesInterface = official.namespaces
 
 type _Promise = [Assert<Extends<APIPromise<AddResponse>, Promise<AddResponse>>>]
 
-declare const memsdkClient: SupermemoryInterface
+declare const memsdkClient: MemsdkInterface
 
 await memsdkClient.add("user_123", { content: "hello", dreaming: "instant" })
 await memsdkClient.search("user_123", { query: "hello", searchMode: "hybrid" })

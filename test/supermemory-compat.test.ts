@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import type { APIPromise, SupermemoryInterface } from "../src/index.ts"
+import type { APIPromise, MemsdkInterface } from "../src/index.ts"
 import { supermemoryCompatibility } from "../src/index.ts"
 import {
   AddRequestSchema,
@@ -33,7 +33,7 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
 
   it("accepts a synthetic mock implementation of the interface", async () => {
     const forgetResponse = { count: 0, errors: [], matches: [] }
-    const client: SupermemoryInterface = {
+    const client: MemsdkInterface = {
       add: (_namespace, request) =>
         apiPromise({ id: request.id ?? "doc_1", status: "queued" }),
       search: () => apiPromise({ results: [], searchTime: 0 }),
