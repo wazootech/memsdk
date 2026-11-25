@@ -79,6 +79,7 @@ export const FilterExpressionSchema: z.ZodType<
 
 const TaskTypeSchema = z.enum(["memory", "superrag"])
 const DreamingSchema = z.enum(["dynamic", "instant"])
+const DreamingStatusSchema = z.enum(["dreaming", "done"])
 
 export const ProcessingStatusSchema = z.enum([
   "unknown",
@@ -179,18 +180,23 @@ export const ProfileResponseSchema = z.object({
 
 export const ListTypeSchema = z.enum(["documents", "chunks", "memories"])
 
-/** `page`, `limit`, `sort`, and `order` travel as query parameters; the rest is the body. */
+/** `cursor`, `page`, `limit`, `sort`, and `order` travel as query parameters; the rest is the body. */
 export const ListRequestSchema = z
   .object({
+    cursor: z.string().optional(),
     page: z.number().int().min(1).default(1),
     limit: z.number().int().min(1).max(100).default(10),
     sort: z.enum(["createdAt", "updatedAt", "position"]).default("createdAt"),
     order: z.enum(["asc", "desc"]).default("desc"),
     filter: FilterExpressionSchema.optional(),
     include: z
-      .object({ forgotten: z.boolean().default(false) })
+      .object({
+        content: z.boolean().default(false),
+        memoryCount: z.boolean().default(true),
+        forgotten: z.boolean().default(false),
+      })
       .strict()
-      .default({ forgotten: false }),
+      .default({ content: false, memoryCount: true, forgotten: false }),
   })
   .strict()
 
@@ -199,6 +205,8 @@ export const PaginationSchema = z.object({
   limit: z.number().optional(),
   totalItems: z.number(),
   totalPages: z.number(),
+  hasMore: z.boolean(),
+  nextCursor: z.string().nullable(),
 })
 
 export const MemoryRecordSchema = z.object({
@@ -228,10 +236,15 @@ export const ListResponseSchema = z.object({
       id: z.string(),
       title: z.string().nullable(),
       type: z.string(),
+      content: z.string().nullable().optional(),
       summary: z.string().nullable(),
       metadata: z.record(z.unknown()),
       url: z.string().nullable(),
-      system: SystemTimestampsSchema.extend({ status: z.string() }),
+      system: SystemTimestampsSchema.extend({
+        status: z.string(),
+        dreamingStatus: DreamingStatusSchema,
+        memoryCount: z.number().int().nonnegative().optional(),
+      }),
     }),
   ),
   chunks: z.array(ChunkRecordSchema.extend({ documentId: z.string() })),
@@ -246,7 +259,10 @@ export const DocumentGetResponseSchema = z.object({
   summary: z.string().nullable(),
   content: z.string().nullable(),
   metadata: z.record(z.unknown()),
-  system: SystemTimestampsSchema.extend({ status: ProcessingStatusSchema }),
+  system: SystemTimestampsSchema.extend({
+    status: ProcessingStatusSchema,
+    dreamingStatus: DreamingStatusSchema,
+  }),
   chunks: z.array(ChunkRecordSchema).optional(),
   memories: z.array(MemoryRecordSchema).optional(),
 })

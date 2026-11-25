@@ -66,6 +66,9 @@ export type TaskType = "memory" | "superrag"
 
 export type Dreaming = "dynamic" | "instant"
 
+/** Memory generation state, distinct from the document processing status. */
+export type DreamingStatus = "dreaming" | "done"
+
 export type FileType = "text" | "pdf" | "image" | "video" | "audio"
 
 export type ProcessingStatus =
@@ -162,6 +165,18 @@ export interface Pagination {
   limit?: number | undefined
   totalItems: number
   totalPages: number
+  hasMore: boolean
+  nextCursor: string | null
+}
+
+/** Namespace pagination omits the cursor fields that list responses require. */
+export interface NamespacePagination {
+  currentPage: number
+  limit?: number | undefined
+  totalItems: number
+  totalPages: number
+  hasMore?: boolean | undefined
+  nextCursor?: string | null | undefined
 }
 
 export interface AddParams {
@@ -237,22 +252,32 @@ export interface ProfileResponse {
 export type ListType = "documents" | "chunks" | "memories"
 
 export interface ListParams {
+  cursor?: string
   page?: number
   limit?: number
   sort?: "createdAt" | "updatedAt" | "position"
   order?: "asc" | "desc"
   filter?: FilterExpression
-  include?: { forgotten?: boolean | undefined }
+  include?: {
+    content?: boolean | undefined
+    memoryCount?: boolean | undefined
+    forgotten?: boolean | undefined
+  }
 }
 
 export interface ListDocument {
   id: string
   title: string | null
   type: string
+  content?: string | null | undefined
   summary: string | null
   metadata: Record<string, unknown>
   url: string | null
-  system: SystemTimestamps & { status: string }
+  system: SystemTimestamps & {
+    status: string
+    dreamingStatus: DreamingStatus
+    memoryCount?: number | undefined
+  }
 }
 
 export interface ListChunk extends ChunkRecord {
@@ -279,7 +304,10 @@ export interface DocumentGetResponse {
   summary: string | null
   content: string | null
   metadata: Record<string, unknown>
-  system: SystemTimestamps & { status: ProcessingStatus }
+  system: SystemTimestamps & {
+    status: ProcessingStatus
+    dreamingStatus: DreamingStatus
+  }
   chunks?: Array<ChunkRecord> | undefined
   memories?: Array<MemoryRecord> | undefined
 }
@@ -397,6 +425,7 @@ export interface ProfileBucketsResponse {
 export interface NamespaceListParams {
   page?: number
   limit?: number
+  q?: string
 }
 
 export interface NamespaceListResponse {
@@ -408,7 +437,7 @@ export interface NamespaceListResponse {
     description: string | null
     system: SystemTimestamps
   }>
-  pagination: Pagination
+  pagination: NamespacePagination
 }
 
 export interface NamespaceResponse {
@@ -587,6 +616,6 @@ export type SupermemoryInterface = MemsdkInterface
 export const supermemoryCompatibility = {
   openapiSource: "https://api.supermemory.ai/v5/openapi",
   openapiVersion: "3.1.0",
-  sdkPackage: "supermemory@5.0.1",
-  sdkGitHead: "0ec1ac77e0d35a0b9440a08b2d2331f43fcc56ba",
+  sdkPackage: "supermemory@5.1.2",
+  sdkGitHead: "42dc16b44b83f8f382c3836eaeda41eba7dcc025",
 } as const
