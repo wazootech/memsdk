@@ -27,6 +27,8 @@ POST /ns/{namespace}/document
 POST /ns/{namespace}/document/batch
 POST /ns/{namespace}/document/file
 POST /ns/{namespace}/document/file/{id}
+POST /ns/{namespace}/graph
+POST /ns/{namespace}/list/documents/memory-counts
 POST /ns/{namespace}/list/{type}
 POST /ns/{namespace}/profile
 POST /ns/{namespace}/search

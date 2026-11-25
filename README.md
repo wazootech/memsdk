@@ -133,7 +133,7 @@ the package is resolved, not to runtime-specific code:
 ## It works
 
 - **Type-level compatibility** is verified at compile time against the official
-  `supermemory@5.0.1` npm package, in both directions: every request and response type
+  `supermemory@5.1.2` npm package, in both directions: every request and response type
   matches the SDK's key-for-key, and the official client is itself assignable to
   `MemsdkInterface`.
 - [**memsdk-e2e**](https://github.com/wazootech/memsdk-e2e): 11 conformance scenarios
@@ -147,7 +147,7 @@ the package is resolved, not to runtime-specific code:
 ## Current scope
 
 - SDK-shaped `MemsdkInterface` for the v5 memory-domain surface only.
-- Vendored TypeScript types aligned with `supermemory@5.0.1` declarations.
+- Vendored TypeScript types aligned with `supermemory@5.1.2` declarations.
 - Awaitable `APIPromise<T>` compatibility for normal `await client...` usage, with
   optional `withRawResponse()`.
 - Per-call `RequestOptions` (`timeoutInSeconds`, `maxRetries`, `abortSignal`, `headers`,

@@ -27,7 +27,7 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
     expect(supermemoryCompatibility).toMatchObject({
       openapiSource: "https://api.supermemory.ai/v5/openapi",
       openapiVersion: "3.1.0",
-      sdkPackage: "supermemory@5.0.1",
+      sdkPackage: "supermemory@5.1.2",
     })
   })
 
@@ -44,7 +44,13 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
           documents: [],
           chunks: [],
           memories: [],
-          pagination: { currentPage: 1, totalItems: 0, totalPages: 0 },
+          pagination: {
+            currentPage: 1,
+            totalItems: 0,
+            totalPages: 0,
+            hasMore: false,
+            nextCursor: null,
+          },
         }),
       documents: {
         get: (_namespace, id) =>
@@ -55,7 +61,7 @@ describe("Supermemory-compatible TypeScript surface (synthetic / no server obser
             summary: null,
             content: "content",
             metadata: {},
-            system: { ...system, status: "done" },
+            system: { ...system, status: "done", dreamingStatus: "done" },
           }),
         update: (_namespace, id) => apiPromise({ id, status: "queued" }),
         delete: (_namespace, request) =>
@@ -172,6 +178,7 @@ describe("vendored Supermemory v5 schema sanity checks (hand-written fixtures, n
       sort: "createdAt",
       order: "desc",
     })
+    expect(ListRequestSchema.parse({ cursor: "next-page" }).cursor).toBe("next-page")
     expect(MemoryForgetMatchingRequestSchema.safeParse({ query: "tea" }).success).toBe(
       false,
     )
@@ -185,7 +192,11 @@ describe("vendored Supermemory v5 schema sanity checks (hand-written fixtures, n
       summary: null,
       content: "Prefers ML.",
       metadata: {},
-      system: { ...system, status: "done" as const },
+      system: {
+        ...system,
+        status: "done" as const,
+        dreamingStatus: "done" as const,
+      },
       chunks: [
         {
           id: "chunk_1",

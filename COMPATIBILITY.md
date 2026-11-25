@@ -6,12 +6,12 @@ upstream and shut down on 2026-12-31; `memsdk` no longer describes them.
 
 ## Pinned References
 
-- SDK reference: `supermemory@5.0.1` (npm `latest` dist-tag, published 2026-10-06)
-- SDK git head: `0ec1ac77e0d35a0b9440a08b2d2331f43fcc56ba` (npm `gitHead` for `5.0.1`)
+- SDK reference: `supermemory@5.1.2` (npm `latest` dist-tag, published 2026-11-02)
+- SDK git head: `42dc16b44b83f8f382c3836eaeda41eba7dcc025` (npm `gitHead` for `5.1.2`)
 - Canonical OpenAPI reference:
   [https://api.supermemory.ai/v5/openapi](https://api.supermemory.ai/v5/openapi)
 - OpenAPI version observed: `3.1.0` (API `info.version` `5.0.0`)
-- OpenAPI operation snapshot: `test/fixtures/openapi-v5.operations.txt` (32 operations)
+- OpenAPI operation snapshot: `test/fixtures/openapi-v5.operations.txt` (34 operations)
 - Upstream migration guide:
   [https://supermemory.ai/migration/api-v5](https://supermemory.ai/migration/api-v5)
 
@@ -20,7 +20,7 @@ upstream and shut down on 2026-12-31; `memsdk` no longer describes them.
 - SDK surface evidence: source of truth for TypeScript method names, positional
   arguments, resource nesting, exported type names, `Uploadable`, `RequestOptions`, and
   awaitable method signatures. Verified at compile time against the official
-  `supermemory@5.0.1` package: every request and response type is mutually assignable
+  `supermemory@5.1.2` package: every request and response type is mutually assignable
   and key-for-key identical at every depth, and the official client is assignable to
   `MemsdkInterface` and each optional resource interface.
 - OpenAPI evidence: canonical HTTP/schema reference used for Zod schema bounds and
@@ -79,9 +79,27 @@ Optional interfaces (exported, verified against the SDK, not required by
 - `SupermemoryProfilesInterface`: `profiles.getBuckets`, `setBuckets`, `deleteBuckets`
 - `SupermemoryNamespacesInterface`: `namespaces.list`, `get`, `update`, `delete`
 
+### Added in SDK 5.1.2
+
+The contract now carries these upstream fields:
+
+- `ListParams.cursor` with required `Pagination.hasMore` and nullable
+  `Pagination.nextCursor`.
+- `ListParams.include.content` / `include.memoryCount`, list document `content`, and
+  list document `system.dreamingStatus` / optional `system.memoryCount`.
+- Required `DocumentGetResponse.system.dreamingStatus` (`"dreaming" | "done"`).
+- `NamespaceListParams.q` and optional namespace pagination `hasMore` / `nextCursor`.
+
 ## Excluded Surface
 
 - `client.connectors.*` and `client.organization.*`
+- `POST /ns/{namespace}/list/documents/memory-counts` (SDK:
+  `client.contentManagement.postNsByNamespaceListDocumentsMemoryCounts`): deliberately
+  excluded. It is a batch convenience endpoint, not part of the portable memory-domain
+  contract; per-document counts are already available through
+  `list(namespace, "documents", { include: { memoryCount: true } })`.
+- `POST /ns/{namespace}/graph`: deliberately excluded. It is a visualization endpoint
+  (`@supermemory/memory-graph`) and has no method in the SDK's memory-domain surface.
 - Constructor, auth, base URL, and client lifecycle compatibility
 - Error classes (`SupermemoryError`, `NotFoundError`, ...)
 - Hosted HTTP route-compatible service
@@ -127,7 +145,11 @@ Defaults changed: search `threshold` is `0.3` (was `0.6`) and `searchMode` is `h
 ## Known OpenAPI/SDK Drift
 
 - OpenAPI exposes `GET /ns`, `GET /namespaces`, and `POST /feedback`, which have no SDK
-  method in `supermemory@5.0.1`.
+  method in `supermemory@5.1.2`.
+- The snapshot tracks every live operation, including the deliberately excluded
+  `POST /ns/{namespace}/graph` and `POST /ns/{namespace}/list/documents/memory-counts`
+  listed under Excluded Surface. Refreshing the snapshot does not add them to the
+  TypeScript contract.
 - `profileMarkdown` is a hand-written SDK method (not generated); OpenAPI models it as a
   `text/markdown` response variant of `POST /ns/{namespace}/profile`.
 - Multipart upload fields `metadata` and `group` are JSON-encoded strings in the SDK,
