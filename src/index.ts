@@ -541,6 +541,10 @@ export interface SupermemoryNamespacesInterface {
   ): APIPromise<NamespaceDeleteResponse>
 }
 
+/**
+ * MemsdkInterface defines the Supermemory v5-compatible contract that memory
+ * backend adapters implement.
+ */
 export interface MemsdkInterface {
   add(
     namespace: string,
@@ -576,6 +580,10 @@ export interface MemsdkInterface {
 /** @deprecated Use {@link MemsdkInterface} instead. */
 export type SupermemoryInterface = MemsdkInterface
 
+/**
+ * supermemoryCompatibility records the upstream OpenAPI and SDK versions used
+ * to verify {@link MemsdkInterface}.
+ */
 export const supermemoryCompatibility = {
   openapiSource: "https://api.supermemory.ai/v5/openapi",
   openapiVersion: "3.1.0",
